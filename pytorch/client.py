@@ -1,5 +1,7 @@
+import os
 from collections import OrderedDict
 
+import flwr as fl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,7 +9,6 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 
-import flwr as fl
 import privacy
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -18,8 +19,12 @@ def load_data():
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    trainset = CIFAR10("data", train=True, download=True, transform=transform)
-    testset = CIFAR10("data", train=False, download=True, transform=transform)
+    trainset = CIFAR10(
+        os.path.join("data"), train=True, download=True, transform=transform
+    )
+    testset = CIFAR10(
+        os.path.join("data"), train=False, download=True, transform=transform
+    )
     trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
     testloader = DataLoader(testset, batch_size=32)
     num_examples = {"trainset": len(trainset), "testset": len(testset)}
@@ -42,6 +47,7 @@ def train(net, trainloader, epochs, clip_threshold: float = 5):
             with torch.no_grad():
                 for p in net.parameters():
                     new_val = privacy.clip_parameter(p, clip_threshold)
+                    new_val = privacy.noise_parameter(new_val, epsilon=0.5)
                     p.copy_(new_val)
 
 

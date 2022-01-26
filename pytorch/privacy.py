@@ -1,4 +1,5 @@
 import torch
+from numpy.random import laplace
 
 
 def clip_parameter(parameter: torch.Tensor, clip_threshold: float) -> torch.Tensor:
@@ -21,10 +22,13 @@ def clip_parameter(parameter: torch.Tensor, clip_threshold: float) -> torch.Tens
     return clipped_parameter
 
 
+def noise_parameter(parameter: torch.Tensor, epsilon: float) -> torch.Tensor:
+    noise = parameter + laplace(1 / epsilon)
+    return noise
+
+
 if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
-    c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
-    cp = clip_parameter(c, 5)
-    print(cp)
+    print(laplace())
