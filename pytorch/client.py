@@ -15,7 +15,7 @@ import privacy
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def load_data() -> Union[DataLoader, DataLoader, int]:
+def load_data(batch_size: int) -> Union[DataLoader, DataLoader, int]:
     """Load CIFAR-10 (training and test set)."""
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -26,49 +26,10 @@ def load_data() -> Union[DataLoader, DataLoader, int]:
     testset = CIFAR10(
         os.path.join("data"), train=False, download=True, transform=transform
     )
-    trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
-    testloader = DataLoader(testset, batch_size=32)
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True)
+    testloader = DataLoader(testset, batch_size=batch_size)
     num_examples = {"trainset": len(trainset), "testset": len(testset)}
     return trainloader, testloader, num_examples
-
-
-def train(
-    net: torch.nn.Module,
-    trainloader: DataLoader,
-    epochs: int,
-    l2_norm_clip: float = 5,
-    noise_multiplier: float = 0.5,
-) -> None:
-    """Train the network on the training set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    for _ in range(epochs):
-        for images, labels in trainloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            optimizer.zero_grad()
-            loss = criterion(net(images), labels)
-            loss.backward()  # compute gradients
-
-            # clip gradients
-            # analagous to tf.clip_by_norm
-            privacy.clip_and_noise(net, l2_norm_clip, noise_multiplier)
-            optimizer.step()  # apply gradients
-
-
-def test(net: torch.nn.Module, testloader: DataLoader) -> Union[float, float]:
-    """Validate the network on the entire test set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    correct, total, loss = 0, 0, 0.0
-    with torch.no_grad():
-        for data in testloader:
-            images, labels = data[0].to(DEVICE), data[1].to(DEVICE)
-            outputs = net(images)
-            loss += criterion(outputs, labels).item()
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-    accuracy = correct / total
-    return loss, accuracy
 
 
 class Net(nn.Module):
@@ -106,29 +67,79 @@ class CifarClient(fl.client.NumPyClient):
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.noise_multiplier = noise_multiplier
+        # init net
+        self.net = Net().to(DEVICE)
+
+    def train(
+        self,
+        trainloader: DataLoader,
+    ) -> None:
+        """Train the network on the training set."""
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
+        for _ in range(self.epochs):
+            for images, labels in trainloader:
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
+                optimizer.zero_grad()
+                loss = criterion(self.net(images), labels)
+                loss.backward()  # compute gradients
+
+                # clip gradients
+                # analagous to tf.clip_by_norm
+                privacy.clip_and_noise(
+                    self.net, self.l2_norm_clip, self.noise_multiplier
+                )
+                optimizer.step()  # apply gradients
+
+    def test(self, testloader: DataLoader) -> Union[float, float]:
+        """Validate the network on the entire test set."""
+        criterion = torch.nn.CrossEntropyLoss()
+        correct, total, loss = 0, 0, 0.0
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data[0].to(DEVICE), data[1].to(DEVICE)
+                outputs = self.net(images)
+                loss += criterion(outputs, labels).item()
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        accuracy = correct / total
+        return loss, accuracy
 
     def get_parameters(self):
-        return [val.cpu().numpy() for _, val in net.state_dict().items()]
+        return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
 
     def set_parameters(self, parameters):
-        params_dict = zip(net.state_dict().keys(), parameters)
+        params_dict = zip(self.net.state_dict().keys(), parameters)
         state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        net.load_state_dict(state_dict, strict=True)
+        self.net.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        train(net, trainloader, epochs=1)
+        self.train(trainloader)
         return self.get_parameters(), num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
-        loss, accuracy = test(net, testloader)
+        loss, accuracy = self.test(testloader)
         return float(loss), num_examples["testset"], {"accuracy": float(accuracy)}
 
 
 if __name__ == "__main__":
-    # Load model and data
-    net = Net().to(DEVICE)
-    trainloader, testloader, num_examples = load_data()
+    epochs = 1
+    batch_size = 32
+    l2_norm_clip = 1.5
+    noise_multiplier = 0.3
 
-    fl.client.start_numpy_client("[::]:8080", client=CifarClient())
+    # Load model and data
+    trainloader, testloader, num_examples = load_data(batch_size)
+
+    # Start Flower client
+
+    client = CifarClient(
+        batch_size=batch_size,
+        epochs=epochs,
+        l2_norm_clip=l2_norm_clip,
+        noise_multiplier=noise_multiplier,
+    )
+    fl.client.start_numpy_client("[::]:8080", client=client)

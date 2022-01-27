@@ -9,7 +9,6 @@ import privacy
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-num_microbatches = 1
 # Define Flower client
 class CifarClient(fl.client.NumPyClient):
     def __init__(
@@ -87,6 +86,7 @@ if __name__ == "__main__":
     batch_size = 32
     l2_norm_clip = 1.5
     noise_multiplier = 0.3
+    num_microbatches = 1
 
     # Load CIFAR-10 dataset
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
