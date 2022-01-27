@@ -1,5 +1,6 @@
 import os
 from collections import OrderedDict
+from typing import Union
 
 import flwr as fl
 import torch
@@ -14,7 +15,7 @@ import privacy
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def load_data():
+def load_data() -> Union[DataLoader, DataLoader, int]:
     """Load CIFAR-10 (training and test set)."""
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -31,7 +32,13 @@ def load_data():
     return trainloader, testloader, num_examples
 
 
-def train(net, trainloader, epochs, clip_threshold: float = 5):
+def train(
+    net: torch.nn.Module,
+    trainloader: DataLoader,
+    epochs: int,
+    l2_norm_clip: float = 5,
+    noise_multiplier: float = 0.5,
+) -> None:
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -41,17 +48,14 @@ def train(net, trainloader, epochs, clip_threshold: float = 5):
             optimizer.zero_grad()
             loss = criterion(net(images), labels)
             loss.backward()
+
+            # clip parameters and add noise
+            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=l2_norm_clip)
+
             optimizer.step()
 
-            # clip parameters
-            with torch.no_grad():
-                for p in net.parameters():
-                    new_val = privacy.clip_parameter(p, clip_threshold)
-                    new_val = privacy.noise_parameter(new_val, epsilon=0.5)
-                    p.copy_(new_val)
 
-
-def test(net, testloader):
+def test(net: torch.nn.Module, testloader: DataLoader) -> Union[float, float]:
     """Validate the network on the entire test set."""
     criterion = torch.nn.CrossEntropyLoss()
     correct, total, loss = 0, 0, 0.0

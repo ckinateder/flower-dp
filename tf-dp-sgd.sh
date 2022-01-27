@@ -1,9 +1,9 @@
-python pytorch/server.py &
+python tf-dp-sgd/server.py &
 
 sleep 1 # Sleep for N seconds to give the server enough time to start, increase if clients can't connect
 
-python pytorch/client.py &
-python pytorch/client.py &
+python tf-dp-sgd/client.py --partition 0 --dpsgd True &
+python tf-dp-sgd/client.py --partition 1 --dpsgd True &
 
 # This will allow you to use CTRL+C to stop all background processes
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
