@@ -63,7 +63,7 @@ def clip_and_noise(
     torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=l2_norm_clip)
     with torch.no_grad():
         for p in net.parameters():
-            new_val = noise_parameter(new_val, noise_multiplier=noise_multiplier)
+            new_val = noise_parameter(p, noise_multiplier=noise_multiplier)
             p.copy_(new_val)
 
 

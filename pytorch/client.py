@@ -47,12 +47,12 @@ def train(
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             optimizer.zero_grad()
             loss = criterion(net(images), labels)
-            loss.backward()
+            loss.backward()  # compute gradients
 
-            # clip parameters and add noise
-            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=l2_norm_clip)
-
-            optimizer.step()
+            # clip gradients
+            # analagous to tf.clip_by_norm
+            privacy.clip_and_noise(net, l2_norm_clip, noise_multiplier)
+            optimizer.step()  # apply gradients
 
 
 def test(net: torch.nn.Module, testloader: DataLoader) -> Union[float, float]:
@@ -91,12 +91,22 @@ class Net(nn.Module):
         return x
 
 
-# Load model and data
-net = Net().to(DEVICE)
-trainloader, testloader, num_examples = load_data()
-
-
 class CifarClient(fl.client.NumPyClient):
+    def __init__(
+        self,
+        batch_size: int,
+        epochs: int,
+        l2_norm_clip: float,
+        noise_multiplier: float,
+        *args,
+        **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.l2_norm_clip = l2_norm_clip
+        self.noise_multiplier = noise_multiplier
+
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
@@ -116,4 +126,9 @@ class CifarClient(fl.client.NumPyClient):
         return float(loss), num_examples["testset"], {"accuracy": float(accuracy)}
 
 
-fl.client.start_numpy_client("[::]:8080", client=CifarClient())
+if __name__ == "__main__":
+    # Load model and data
+    net = Net().to(DEVICE)
+    trainloader, testloader, num_examples = load_data()
+
+    fl.client.start_numpy_client("[::]:8080", client=CifarClient())
