@@ -76,6 +76,8 @@ class CifarClient(fl.client.NumPyClient):
         self.privacy_engine = PrivacyEngine(secure_mode=True)
         self.trainloader = trainloader
         self.testloader = testloader
+        self.num_examples = len(trainloader.dataset) + len(testloader.dataset)
+        self.privacy_spent = None
 
     def train(self) -> None:
         """Train the network on the training set."""
@@ -119,6 +121,11 @@ class CifarClient(fl.client.NumPyClient):
                 """
                 optimizer.step()  # apply gradients
                 optimizer.zero_grad()
+            epsilon, best_alpha = self.privacy_engine.accountant.get_privacy_spent(
+                delta=1 / self.num_examples,
+                alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
+            )
+            self.privacy_spent = epsilon
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
@@ -163,7 +170,6 @@ if __name__ == "__main__":
 
     # Load model and data
     trainloader, testloader, num_examples = load_data(batch_size)
-
     # Start Flower client
 
     client = CifarClient(

@@ -36,6 +36,7 @@ class CifarClient(fl.client.NumPyClient):
         self.x_test = x_test
         self.y_test = y_test
         # self.num_classes = len(np.unique(y_train))
+        self.privacy_spent = None
 
         # init model
         self.build_model()
