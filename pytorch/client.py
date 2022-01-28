@@ -91,36 +91,16 @@ class CifarClient(fl.client.NumPyClient):
             noise_multiplier=self.noise_multiplier,
             max_grad_norm=self.l2_norm_clip,
         )
-        """
-        optimizer = privacy.LaplaceDPOptimizer(
-            optimizer=optimizer,
-            noise_multiplier=self.noise_multiplier,
-            max_grad_norm=self.l2_norm_clip,
-            expected_batch_size=self.batch_size,
-            secure_mode=True,
-        )
-        """
 
         for _ in range(self.epochs):
             for images, labels in self.trainloader:
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
                 loss.backward()  # compute gradients
-                """
-                # clip gradients and add noise
-                torch.nn.utils.clip_grad_norm_(
-                    self.net.parameters(), max_norm=l2_norm_clip
-                )
-
-                with torch.no_grad():
-                    for p in self.net.parameters():
-                        new_val = p + np.random.laplace(
-                            loc=0, scale=1 / noise_multiplier
-                        )
-                        p.copy_(new_val)
-                """
                 optimizer.step()  # apply gradients
                 optimizer.zero_grad()
+
+            # compute privacy spent
             epsilon, best_alpha = self.privacy_engine.accountant.get_privacy_spent(
                 delta=1 / self.num_examples,
                 alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),

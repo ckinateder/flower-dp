@@ -7,9 +7,9 @@ Implementing custom differential privacy into the flower.dev federated learning 
 To setup with a virtual environment, use `virtualenv`.
 
 ```bash
-$ virtualenv env
-$ source env/bin/activate
-(env) $ pip3 install -r requirements.txt
+virtualenv env
+source env/bin/activate
+pip3 install -r requirements.txt
 ```
 
 ## Examples
@@ -21,3 +21,4 @@ $ source env/bin/activate
 
 - Implement server-side noising
 - Validate correct laplacian noise
+- Make docker image
