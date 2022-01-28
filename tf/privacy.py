@@ -8,7 +8,11 @@ from tensorflow_privacy.privacy.analysis.rdp_accountant import (
 
 
 def compute_epsilon(
-    epochs: int, num_train_examples: int, batch_size: int, noise_multiplier: float
+    epochs: int,
+    num_train_examples: int,
+    batch_size: int,
+    noise_multiplier: float,
+    target_delta: float,
 ) -> float:
     """Computes epsilon value for given hyperparameters.
 
@@ -27,4 +31,4 @@ def compute_epsilon(
         orders=orders,
     )
     # Delta is set to approximate 1 / (number of training points).
-    return get_privacy_spent(orders, rdp, target_delta=1 / num_train_examples)[0]
+    return get_privacy_spent(orders, rdp, target_delta=target_delta)[0]

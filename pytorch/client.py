@@ -64,7 +64,7 @@ class CifarClient(fl.client.NumPyClient):
         l2_norm_clip: float,
         noise_multiplier: float,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.batch_size = batch_size
@@ -73,25 +73,29 @@ class CifarClient(fl.client.NumPyClient):
         self.noise_multiplier = noise_multiplier
         # init net
         self.net = Net().to(DEVICE)
-        self.privacy_engine = PrivacyEngine(secure_mode=True)
         self.trainloader = trainloader
         self.testloader = testloader
-        self.num_examples = len(trainloader.dataset) + len(testloader.dataset)
+        self.num_examples = len(trainloader.dataset)
         self.privacy_spent = None
+        self.target_delta = 1 / self.num_examples
 
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
 
-        self.net, optimizer, trainloader = self.privacy_engine.make_private(
+        # put in train mode
+        self.net.train()
+        self.privacy_engine = PrivacyEngine(secure_mode=True)
+
+        # make network and optimizer private
+        self.net, optimizer, self.trainloader = self.privacy_engine.make_private(
             module=self.net,
             optimizer=optimizer,
             data_loader=self.trainloader,
             noise_multiplier=self.noise_multiplier,
             max_grad_norm=self.l2_norm_clip,
         )
-
         for _ in range(self.epochs):
             for images, labels in self.trainloader:
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
@@ -100,15 +104,10 @@ class CifarClient(fl.client.NumPyClient):
                 optimizer.step()  # apply gradients
                 optimizer.zero_grad()
 
-            # compute privacy spent
-            epsilon, best_alpha = self.privacy_engine.accountant.get_privacy_spent(
-                delta=1 / self.num_examples,
-                alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-            )
-            self.privacy_spent = epsilon
-
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
+
+        # put in test mode
         self.net.eval()
         criterion = torch.nn.CrossEntropyLoss()
         correct, total, loss = 0, 0, 0.0
@@ -134,6 +133,13 @@ class CifarClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         self.train()
+        # compute privacy spent
+        epsilon, best_alpha = self.privacy_engine.accountant.get_privacy_spent(
+            delta=self.target_delta,
+            alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
+        )
+        self.privacy_spent = epsilon
+        print(f"(ε = {epsilon:.2f}, δ = {self.target_delta}) for α = {best_alpha}")
         return self.get_parameters(), num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):

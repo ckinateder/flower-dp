@@ -21,13 +21,17 @@ docker build -t flower-dp:latest .
 To run image
 
 ```bash
-docker run --rm -it -v `pwd`:`pwd` -w `pwd` flower-dp:latest
+docker run --rm -it -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest bash
 ```
 
 ## Examples
 
 - pytorch example with `./pytorch.sh`.
 - tensorflow example with `./tf.sh`.
+
+## Privacy
+
+Delta is assumed to be `1/num_training_examples`.
 
 ## Todo
 

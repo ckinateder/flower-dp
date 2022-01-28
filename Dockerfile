@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/11.6.0-runtime-ubuntu20.04
+FROM debian:bookworm-slim
 COPY requirements.txt .
 RUN apt-get update -qq
 RUN apt-get install -qq apt-utils curl python3 python3-pip

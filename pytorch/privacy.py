@@ -74,18 +74,6 @@ def clip_and_noise(
             p.copy_(new_val)
 
 
-class LaplaceDPOptimizer(DPOptimizer):
-    def add_noise(self):
-        laplace = Laplace(loc=0, scale=self.noise_multiplier * self.max_grad_norm)
-        for p in self.params:
-            _check_processed_flag(p.summed_grad)
-
-            noise = laplace.sample(p.summed_grad.shape)
-            p.grad = p.summed_grad + noise
-
-            _mark_as_processed(p.summed_grad)
-
-
 if __name__ == "__main__":
     import doctest
 

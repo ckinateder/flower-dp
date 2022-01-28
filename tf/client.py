@@ -23,7 +23,7 @@ class CifarClient(fl.client.NumPyClient):
         l2_norm_clip: float,
         noise_multiplier: float,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         # assign params
@@ -37,7 +37,8 @@ class CifarClient(fl.client.NumPyClient):
         self.y_test = y_test
         # self.num_classes = len(np.unique(y_train))
         self.privacy_spent = None
-
+        self.num_examples = x_train.shape[0]
+        self.target_delta = 1 / self.num_examples
         # init model
         self.build_model()
 
@@ -81,15 +82,17 @@ class CifarClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):  # type: ignore
         self.model.set_weights(parameters)
+        self.model.fit(
+            self.x_train, self.y_train, epochs=self.epochs, batch_size=self.batch_size
+        )
         self.privacy_spent = privacy.compute_epsilon(
             self.epochs,
             len(x_train),
             self.batch_size,
             self.noise_multiplier,
+            self.target_delta,
         )
-        self.model.fit(
-            self.x_train, self.y_train, epochs=self.epochs, batch_size=self.batch_size
-        )
+        print(f"(ε = {self.privacy_spent:.2f}, δ = {1/self.num_examples})")
         return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):  # type: ignore
