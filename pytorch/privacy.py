@@ -3,6 +3,12 @@ import torch
 import tensorflow as tf
 import logging
 
+from opacus import PrivacyEngine
+from opacus.optimizers import DPOptimizer
+
+from torch.distributions.laplace import Laplace
+from opacus.optimizers.optimizer import _check_processed_flag, _mark_as_processed
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,11 +66,24 @@ def clip_and_noise(
     noise_multiplier: float,
 ) -> None:
     # clip parameters and add noise
+    # analagous to tf.clip_by_norm
     torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=l2_norm_clip)
     with torch.no_grad():
         for p in net.parameters():
             new_val = noise_parameter(p, noise_multiplier=noise_multiplier)
             p.copy_(new_val)
+
+
+class LaplaceDPOptimizer(DPOptimizer):
+    def add_noise(self):
+        laplace = Laplace(loc=0, scale=self.noise_multiplier * self.max_grad_norm)
+        for p in self.params:
+            _check_processed_flag(p.summed_grad)
+
+            noise = laplace.sample(p.summed_grad.shape)
+            p.grad = p.summed_grad + noise
+
+            _mark_as_processed(p.summed_grad)
 
 
 if __name__ == "__main__":

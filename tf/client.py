@@ -13,6 +13,10 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 class CifarClient(fl.client.NumPyClient):
     def __init__(
         self,
+        x_train,
+        y_train,
+        x_test,
+        y_test,
         batch_size: int,
         epochs: int,
         l2_norm_clip: float,
@@ -26,7 +30,10 @@ class CifarClient(fl.client.NumPyClient):
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.noise_multiplier = noise_multiplier
-
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_test = x_test
+        self.y_test = y_test
         # init model
         self.build_model()
 
@@ -49,7 +56,7 @@ class CifarClient(fl.client.NumPyClient):
                 tf.keras.layers.Dense(10, activation="softmax"),
             ]
         )
-        optimizer = tfp.VectorizedDPKerasSGDOptimizer(
+        optimizer = tfp.DPKerasSGDOptimizer(
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
             num_microbatches=num_microbatches,
@@ -65,18 +72,20 @@ class CifarClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):  # type: ignore
         self.model.set_weights(parameters)
-        privacy_spent = privacy.compute_epsilon(
+        self.privacy_spent = privacy.compute_epsilon(
             self.epochs,
             len(x_train),
             self.batch_size,
             self.noise_multiplier,
         )
-        self.model.fit(x_train, y_train, epochs=self.epochs, batch_size=self.batch_size)
-        return self.model.get_weights(), len(x_train), {}
+        self.model.fit(
+            self.x_train, self.y_train, epochs=self.epochs, batch_size=self.batch_size
+        )
+        return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):  # type: ignore
         self.model.set_weights(parameters)
-        loss, accuracy = self.model.evaluate(x_test, y_test)
+        loss, accuracy = self.model.evaluate(self.x_test, self.y_test)
         return loss, len(x_test), {"accuracy": accuracy}
 
 
@@ -94,6 +103,10 @@ if __name__ == "__main__":
     # Start Flower client
 
     client = CifarClient(
+        x_train,
+        y_train,
+        x_test,
+        y_test,
         batch_size=batch_size,
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,

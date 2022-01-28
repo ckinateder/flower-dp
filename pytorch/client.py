@@ -3,10 +3,12 @@ from collections import OrderedDict
 from typing import Union
 
 import flwr as fl
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from opacus import PrivacyEngine
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 
@@ -55,6 +57,8 @@ class Net(nn.Module):
 class CifarClient(fl.client.NumPyClient):
     def __init__(
         self,
+        trainloader: DataLoader,
+        testloader: DataLoader,
         batch_size: int,
         epochs: int,
         l2_norm_clip: float,
@@ -69,34 +73,60 @@ class CifarClient(fl.client.NumPyClient):
         self.noise_multiplier = noise_multiplier
         # init net
         self.net = Net().to(DEVICE)
+        self.privacy_engine = PrivacyEngine(secure_mode=True)
+        self.trainloader = trainloader
+        self.testloader = testloader
 
-    def train(
-        self,
-        trainloader: DataLoader,
-    ) -> None:
+    def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
+
+        """
+        self.net, optimizer, trainloader = self.privacy_engine.make_private(
+            module=self.net,
+            optimizer=optimizer,
+            data_loader=trainloader,
+            noise_multiplier=self.noise_multiplier,
+            max_grad_norm=self.l2_norm_clip,
+        )
+        
+        optimizer = privacy.LaplaceDPOptimizer(
+            optimizer=optimizer,
+            noise_multiplier=self.noise_multiplier,
+            max_grad_norm=self.l2_norm_clip,
+            expected_batch_size=self.batch_size,
+            secure_mode=True,
+        )
+        """
+
         for _ in range(self.epochs):
-            for images, labels in trainloader:
+            for images, labels in self.trainloader:
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
                 loss = criterion(self.net(images), labels)
                 loss.backward()  # compute gradients
 
-                # clip gradients
-                # analagous to tf.clip_by_norm
-                privacy.clip_and_noise(
-                    self.net, self.l2_norm_clip, self.noise_multiplier
+                # clip gradients and add noise
+
+                torch.nn.utils.clip_grad_norm_(
+                    self.net.parameters(), max_norm=l2_norm_clip
                 )
+
+                with torch.no_grad():
+                    for p in self.net.parameters():
+                        new_val = p + np.random.laplace(
+                            loc=0, scale=1 / noise_multiplier
+                        )
+                        p.copy_(new_val)
                 optimizer.step()  # apply gradients
 
-    def test(self, testloader: DataLoader) -> Union[float, float]:
+    def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
         criterion = torch.nn.CrossEntropyLoss()
         correct, total, loss = 0, 0, 0.0
         with torch.no_grad():
-            for data in testloader:
+            for data in self.testloader:
                 images, labels = data[0].to(DEVICE), data[1].to(DEVICE)
                 outputs = self.net(images)
                 loss += criterion(outputs, labels).item()
@@ -116,12 +146,12 @@ class CifarClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        self.train(trainloader)
+        self.train()
         return self.get_parameters(), num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
-        loss, accuracy = self.test(testloader)
+        loss, accuracy = self.test()
         return float(loss), num_examples["testset"], {"accuracy": float(accuracy)}
 
 
@@ -137,6 +167,8 @@ if __name__ == "__main__":
     # Start Flower client
 
     client = CifarClient(
+        trainloader,
+        testloader,
         batch_size=batch_size,
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,
