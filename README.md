@@ -12,6 +12,18 @@ source env/bin/activate
 pip3 install -r requirements.txt
 ```
 
+To build image
+
+```bash
+docker build -t flower-dp:latest .
+```
+
+To run image
+
+```bash
+docker run --rm -it -v `pwd`:`pwd` -w `pwd` flower-dp:latest
+```
+
 ## Examples
 
 - pytorch example with `./pytorch.sh`.
