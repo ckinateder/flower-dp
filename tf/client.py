@@ -1,10 +1,11 @@
 import os
 
 import flwr as fl
+import numpy as np
 import tensorflow as tf
 import tensorflow_privacy as tfp
-import privacy
 
+import privacy
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -13,10 +14,10 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 class CifarClient(fl.client.NumPyClient):
     def __init__(
         self,
-        x_train,
-        y_train,
-        x_test,
-        y_test,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        x_test: np.ndarray,
+        y_test: np.ndarray,
         batch_size: int,
         epochs: int,
         l2_norm_clip: float,
@@ -34,14 +35,21 @@ class CifarClient(fl.client.NumPyClient):
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
+        # self.num_classes = len(np.unique(y_train))
+
         # init model
         self.build_model()
 
     def build_model(self):
+        print(self.y_train.shape)
         self.model = tf.keras.models.Sequential(
             [
                 tf.keras.layers.Conv2D(
-                    32, 3, padding="same", input_shape=(32, 32, 3), activation="relu"
+                    32,
+                    3,
+                    padding="same",
+                    input_shape=self.x_train.shape[1:],
+                    activation="relu",
                 ),
                 tf.keras.layers.Conv2D(32, 3, activation="relu"),
                 tf.keras.layers.MaxPooling2D(),

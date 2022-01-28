@@ -5,4 +5,9 @@ Implementing custom differential privacy into the flower.dev federated learning 
 ## examples
 
 - pytorch example with `./pytorch.sh`.
-- tf-dp-sgd example with `./tf-dp-sgd`.
+- tensorflow example with `./tf.sh`.
+
+## Todo
+
+- Implement server-side noising
+- Validate correct laplacian noise
