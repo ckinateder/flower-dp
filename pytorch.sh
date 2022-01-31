@@ -4,6 +4,7 @@ sleep 1 # Sleep for N seconds to give the server enough time to start, increase 
 
 python3 pytorch/client.py &
 python3 pytorch/client.py &
+python3 pytorch/client.py &
 
 # This will allow you to use CTRL+C to stop all background processes
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT

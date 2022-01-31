@@ -1,9 +1,17 @@
 import flwr as fl
 
 from typing import List, Tuple, Optional
+from io import BytesIO
+
+import numpy as np
+from typing import cast
+import privacy
 
 
 class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
+    def __init__(self, *args, **kwargs) -> None:
+        super(*args, **kwargs).__init__()
+
     def aggregate_fit(
         self,
         rnd: int,
@@ -11,18 +19,21 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
         failures: List[BaseException],
     ) -> Optional[fl.common.Weights]:
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
-
+        sigma_d = privacy.calculate_sigma_d(epsilon=1.5, N=self.min_available_clients)
+        # add noise
         if aggregated_weights is not None:
-            # add noise to the aggregated_weights here
-            pass
+            noised_weights = list(aggregated_weights)
+            for i in range(len(aggregated_weights)):
+                if type(aggregated_weights[i]) == fl.common.typing.Parameters:
+                    weights = fl.common.parameters_to_weights(aggregated_weights[i])
+                    weights = privacy.noise_weights(weights, sigma_d)
+                    noised_parameters = fl.common.weights_to_parameters(weights)
+                    noised_weights[i] = noised_parameters
+
+            aggregated_weights = tuple(noised_weights)  # convert back
         return aggregated_weights
 
 
-# Create strategy and run server
-strategy = ServerSideNoiseStrategy(
-    # (same arguments as FedAvg here)
-)
-fl.server.start_server(strategy=strategy)
 if __name__ == "__main__":
-    strategy = fl.server.strategy.FedAvg()
+    strategy = ServerSideNoiseStrategy()  # (min_available_clients=3)
     fl.server.start_server(config={"num_rounds": 3}, strategy=strategy)

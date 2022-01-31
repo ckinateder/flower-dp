@@ -14,6 +14,7 @@ from torchvision.datasets import CIFAR10
 
 import privacy
 
+# cuda device
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -71,8 +72,7 @@ class CifarClient(fl.client.NumPyClient):
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.noise_multiplier = noise_multiplier
-        # init net
-        self.net = Net().to(DEVICE)
+        self.net = Net().to(DEVICE)  # init net
         self.trainloader = trainloader
         self.testloader = testloader
         self.num_examples = len(trainloader.dataset)
@@ -81,12 +81,11 @@ class CifarClient(fl.client.NumPyClient):
 
     def train(self) -> None:
         """Train the network on the training set."""
-        criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.CrossEntropyLoss()  # loss function
         optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
 
-        # put in train mode
-        self.net.train()
-        self.privacy_engine = PrivacyEngine(secure_mode=True)
+        self.net.train()  # put in train mode
+        self.privacy_engine = PrivacyEngine(secure_mode=True)  # create privacy engine
 
         # make network and optimizer private
         self.net, optimizer, self.trainloader = self.privacy_engine.make_private(
@@ -102,14 +101,12 @@ class CifarClient(fl.client.NumPyClient):
                 loss = criterion(self.net(images), labels)
                 loss.backward()  # compute gradients
                 optimizer.step()  # apply gradients
-                optimizer.zero_grad()
+                optimizer.zero_grad()  # zero gradients
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
-
-        # put in test mode
-        self.net.eval()
-        criterion = torch.nn.CrossEntropyLoss()
+        self.net.eval()  # put in test mode
+        criterion = torch.nn.CrossEntropyLoss()  # loss function
         correct, total, loss = 0, 0, 0.0
         with torch.no_grad():
             for data in self.testloader:
@@ -122,6 +119,7 @@ class CifarClient(fl.client.NumPyClient):
         accuracy = correct / total
         return loss, accuracy
 
+    ## implementing default abstract functions
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
 

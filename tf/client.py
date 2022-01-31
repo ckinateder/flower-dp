@@ -35,7 +35,6 @@ class CifarClient(fl.client.NumPyClient):
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
-        # self.num_classes = len(np.unique(y_train))
         self.privacy_spent = None
         self.num_examples = x_train.shape[0]
         self.target_delta = 1 / self.num_examples
@@ -43,7 +42,7 @@ class CifarClient(fl.client.NumPyClient):
         self.build_model()
 
     def build_model(self):
-        print(self.y_train.shape)
+        # sequential model
         self.model = tf.keras.models.Sequential(
             [
                 tf.keras.layers.Conv2D(
@@ -66,17 +65,18 @@ class CifarClient(fl.client.NumPyClient):
                 tf.keras.layers.Dense(10, activation="softmax"),
             ]
         )
-        optimizer = tfp.DPKerasSGDOptimizer(
+        # differentially private optimizer
+        optimizer = tfp.VectorizedDPKerasSGDOptimizer(
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
-            num_microbatches=num_microbatches,
+            num_microbatches=1,
             learning_rate=0.001,
         )
-
+        # loss function
         loss = tf.keras.losses.SparseCategoricalCrossentropy()
-        # num_microbatches=num_microbatches
         self.model.compile(optimizer, loss=loss, metrics=["accuracy"])
 
+    ## implementing default abstract functions
     def get_parameters(self):  # type: ignore
         return self.model.get_weights()
 
@@ -85,14 +85,16 @@ class CifarClient(fl.client.NumPyClient):
         self.model.fit(
             self.x_train, self.y_train, epochs=self.epochs, batch_size=self.batch_size
         )
-        self.privacy_spent = privacy.compute_epsilon(
+        # compute privacy
+        epsilon, best_alpha = privacy.get_privacy_spent(
             self.epochs,
-            len(x_train),
+            self.x_train.shape[0],
             self.batch_size,
             self.noise_multiplier,
             self.target_delta,
         )
-        print(f"(ε = {self.privacy_spent:.2f}, δ = {1/self.num_examples})")
+        self.privacy_spent = epsilon
+        print(f"(ε = {epsilon:.2f}, δ = {self.target_delta}) for α = {best_alpha}")
         return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):  # type: ignore
@@ -107,7 +109,6 @@ if __name__ == "__main__":
     batch_size = 32
     l2_norm_clip = 1.5
     noise_multiplier = 0.3
-    num_microbatches = 1
 
     # Load CIFAR-10 dataset
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()

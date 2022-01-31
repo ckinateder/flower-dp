@@ -1,19 +1,16 @@
 import numpy as np
 import tensorflow as tf
-
-from tensorflow_privacy.privacy.analysis.rdp_accountant import (
-    compute_rdp,
-    get_privacy_spent,
-)
+from typing import Tuple
+import tensorflow_privacy as tfp
 
 
-def compute_epsilon(
+def get_privacy_spent(
     epochs: int,
     num_train_examples: int,
     batch_size: int,
     noise_multiplier: float,
     target_delta: float,
-) -> float:
+) -> Tuple[float, float]:
     """Computes epsilon value for given hyperparameters.
 
     Based on
@@ -24,7 +21,7 @@ def compute_epsilon(
     steps = epochs * num_train_examples // batch_size
     orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
     sampling_probability = batch_size / num_train_examples
-    rdp = compute_rdp(
+    rdp = tfp.privacy.analysis.rdp_accountant.compute_rdp(
         q=sampling_probability,
         noise_multiplier=noise_multiplier,
         steps=steps,
@@ -32,5 +29,7 @@ def compute_epsilon(
     )
     # Delta is set to approximate 1 / (number of training points).
 
-    epsilon, delta, alpha = get_privacy_spent(orders, rdp, target_delta=target_delta)
-    return epsilon
+    epsilon, delta, alpha = tfp.privacy.analysis.rdp_accountant.get_privacy_spent(
+        orders, rdp, target_delta=target_delta
+    )
+    return epsilon, alpha
