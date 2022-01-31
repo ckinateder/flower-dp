@@ -31,4 +31,6 @@ def compute_epsilon(
         orders=orders,
     )
     # Delta is set to approximate 1 / (number of training points).
-    return get_privacy_spent(orders, rdp, target_delta=target_delta)[0]
+
+    epsilon, delta, alpha = get_privacy_spent(orders, rdp, target_delta=target_delta)
+    return epsilon
