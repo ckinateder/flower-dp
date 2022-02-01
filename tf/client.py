@@ -86,15 +86,15 @@ class CifarClient(fl.client.NumPyClient):
             self.x_train, self.y_train, epochs=self.epochs, batch_size=self.batch_size
         )
         # compute privacy
-        epsilon, best_alpha = privacy.get_privacy_spent(
+        epsilon, delta, best_alpha = privacy.get_privacy_spent(
             self.epochs,
-            self.x_train.shape[0],
+            self.num_examples,
             self.batch_size,
             self.noise_multiplier,
             self.target_delta,
         )
         self.privacy_spent = epsilon
-        print(f"(ε = {epsilon:.2f}, δ = {self.target_delta}) for α = {best_alpha}")
+        print(f"(ε = {epsilon:.2f}, δ = {delta}) for α = {best_alpha}")
         return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):  # type: ignore

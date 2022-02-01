@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from opacus import PrivacyEngine
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
-
+from tqdm import tqdm
 import privacy
 
 # cuda device
@@ -60,10 +60,11 @@ class CifarClient(fl.client.NumPyClient):
         self,
         trainloader: DataLoader,
         testloader: DataLoader,
-        batch_size: int,
-        epochs: int,
-        l2_norm_clip: float,
-        noise_multiplier: float,
+        batch_size: int = 32,
+        epochs: int = 1,
+        l2_norm_clip: float = 1.5,
+        noise_multiplier: float = 0.3,
+        learning_rate: float = 0.001,
         *args,
         **kwargs,
     ) -> None:
@@ -78,30 +79,40 @@ class CifarClient(fl.client.NumPyClient):
         self.num_examples = len(trainloader.dataset)
         self.privacy_spent = None
         self.target_delta = 1 / self.num_examples
+        self.learning_rate = learning_rate
 
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
+        # optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
 
         self.net.train()  # put in train mode
         self.privacy_engine = PrivacyEngine(secure_mode=True)  # create privacy engine
 
-        # make network and optimizer private
-        self.net, optimizer, self.trainloader = self.privacy_engine.make_private(
-            module=self.net,
-            optimizer=optimizer,
-            data_loader=self.trainloader,
-            noise_multiplier=self.noise_multiplier,
-            max_grad_norm=self.l2_norm_clip,
-        )
+        # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
+        # see opacus source
+        stddev = self.noise_multiplier * self.l2_norm_clip
+
         for _ in range(self.epochs):
-            for images, labels in self.trainloader:
+            for images, labels in tqdm(self.trainloader, leave=False):
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
-                loss.backward()  # compute gradients
-                optimizer.step()  # apply gradients
-                optimizer.zero_grad()  # zero gradients
+
+                # Zero the gradients before running the backward pass.
+                self.net.zero_grad()
+
+                # Backward pass
+                loss.backward()
+
+                # Update the weights using gradient descent. Each parameter is a Tensor, so
+                # we can access its gradients like we did before.
+                with torch.no_grad():
+                    for param in self.net.parameters():
+                        param -= self.learning_rate * param.grad
+                        param = privacy.clip_parameter(
+                            param, clip_threshold=self.l2_norm_clip
+                        )
+                        param = privacy.noise_parameter(param, std=stddev)
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
@@ -131,13 +142,16 @@ class CifarClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         self.train()
-        # compute privacy spent
-        epsilon, best_alpha = self.privacy_engine.accountant.get_privacy_spent(
-            delta=self.target_delta,
-            alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
+        # compute privacy
+        epsilon, delta, best_alpha = privacy.get_privacy_spent(
+            self.epochs,
+            self.num_examples,
+            self.batch_size,
+            self.noise_multiplier,
+            self.target_delta,
         )
         self.privacy_spent = epsilon
-        print(f"(ε = {epsilon:.2f}, δ = {self.target_delta}) for α = {best_alpha}")
+        print(f"(ε = {epsilon:.2f}, δ = {delta}) for α = {best_alpha}")
         return self.get_parameters(), num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):
@@ -151,6 +165,7 @@ if __name__ == "__main__":
     batch_size = 32
     l2_norm_clip = 1.5
     noise_multiplier = 0.3
+    learning_rate = 0.001
 
     # Load model and data
     trainloader, testloader, num_examples = load_data(batch_size)
@@ -163,5 +178,6 @@ if __name__ == "__main__":
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,
         noise_multiplier=noise_multiplier,
+        learning_rate=learning_rate,
     )
     fl.client.start_numpy_client("[::]:8080", client=client)
