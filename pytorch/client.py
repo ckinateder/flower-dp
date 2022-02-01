@@ -104,8 +104,7 @@ class CifarClient(fl.client.NumPyClient):
                 # Backward pass
                 loss.backward()
 
-                # Update the weights using gradient descent. Each parameter is a Tensor, so
-                # we can access its gradients like we did before.
+                # Update the weights using gradient descent
                 with torch.no_grad():
                     for param in self.net.parameters():
                         param -= self.learning_rate * param.grad
