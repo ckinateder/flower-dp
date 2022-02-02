@@ -6,7 +6,7 @@ import flwr as fl
 import numpy as np
 import tensorflow as tf
 
-import tensorflow_privacy as tfp
+import tensorflow_privacy as tfp  # for privacy calculations
 import torch
 
 logger = logging.getLogger(__name__)
@@ -15,30 +15,47 @@ logger = logging.getLogger(__name__)
 def calculate_sigma_d(
     epsilon: float,
     delta: float = 1 / 2e5,
-    L: float = 3,
     C: float = 1.5,
-    T: float = 3,
-    N: float = 2,
-    m: float = 1e5,
+    L: int = None,
+    T: int = None,
+    N: int = 2,
+    m: int = 1e5,
 ) -> float:
     """Calculate sigma_d, or the std of the normal for server-side noising.
     Based off theroem 1 in 1911.00222
 
     Args:
-        epsilon (float): privacy budget
-        delta (float, optional): delta value. Defaults to 1 / 2e5.
-        L (float, optional): exposures of local parameters. Defaults to 3.
-        C (float, optional): l2_norm_clip - clipping threshold for bounding weights. Defaults to 1.5.
-        T (float, optional): num rounds - number of aggregation times. Defaults to 3.
-        N (float, optional): number of clients. Defaults to 2.
-        m (float, optional): minimum size of local datasets. Defaults to 1e5.
+        epsilon (float): measures the strength of the privacy guarantee by
+            bounding how much the probability of a particular model output
+            can vary by including (or excluding) a single training point.
+        delta (float, optional): Bounds the probability of the privacy guarantee
+            not holding. A rule of thumb is to set it to be less than the
+            inverse of the size of the training dataset. Defaults to 1 / 2e5.
+        C (int, optional): l2_norm_clip - clipping threshold for bounding
+            weights. Defaults to 1.5.
+        L (int, optional): exposures of local parameters - number of times
+            local params are uploaded to server. Defaults to None, which is
+            then set to value of T if given, or 3.
+        T (int, optional): num rounds - number of aggregation times. Must be
+            greater than or equal to L. Defaults to None, which is
+            then set to value of L if given, or 3.
+        N (int, optional): number of clients. Defaults to 2.
+        m (int, optional): minimum size of local datasets. Defaults to 1e5.
 
     Returns:
         float: sigma_d
 
-    >>> calculate_sigma_d(0.8, 1 / 1e5, 2, 1.5, 3, 2, 1e4)
+    >>> calculate_sigma_d(0.8, 1 / 1e5, 1.5, 2, 3, 2, 1e4)
     0.0009084009867385104
     """
+    if L == None and T == None:
+        L = 3
+        L = T
+    elif L == None:  # if L not given but T is
+        L = T
+    elif T == None:  # if T not given but L is
+        T = L
+
     if T <= L * (N ** 0.5):
         return 0
     # for epsilon (0, 1) - need to verify for outside bound

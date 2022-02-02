@@ -84,18 +84,17 @@ class CifarClient(fl.client.NumPyClient):
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        # optimizer = torch.optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9)
+        # optimizer = torch.optim.SGD(
+        #    self.net.parameters(), lr=self.learning_rate, momentum=0.9
+        # )
 
         self.net.train()  # put in train mode
-        self.privacy_engine = PrivacyEngine(secure_mode=True)  # create privacy engine
-
-        # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
-        # see opacus source
-        stddev = self.noise_multiplier * self.l2_norm_clip
 
         for _ in range(self.epochs):
             for images, labels in tqdm(self.trainloader, leave=False):
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
+
+                # compute loss
                 loss = criterion(self.net(images), labels)
 
                 # Zero the gradients before running the backward pass.
@@ -107,11 +106,15 @@ class CifarClient(fl.client.NumPyClient):
                 # Update the weights using gradient descent
                 with torch.no_grad():
                     for param in self.net.parameters():
-                        param -= self.learning_rate * param.grad
+                        # param -= self.learning_rate * param.grad
+                        # clip and noise
                         param = privacy.clip_parameter(
                             param, clip_threshold=self.l2_norm_clip
                         )
-                        param = privacy.noise_parameter(param, std=stddev)
+                        # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
+                        param = privacy.noise_parameter(
+                            param, std=self.noise_multiplier * self.l2_norm_clip
+                        )
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""

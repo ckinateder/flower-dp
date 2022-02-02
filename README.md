@@ -1,7 +1,7 @@
 # flower-dp
 
 Implementing custom differential privacy into the flower.dev federated learning framework.
-
+**NOTE - this branch is only using pytorch**
 ## Setup
 
 To setup with a virtual environment, use `virtualenv`.
@@ -35,6 +35,4 @@ Delta is assumed to be `1/num_training_examples`.
 
 ## Todo
 
-- Implement server-side noising
-- Validate correct laplacian noise
-- Make docker image
+- Package
