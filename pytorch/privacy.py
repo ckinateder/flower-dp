@@ -103,20 +103,20 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> torch.Tensor:
 
 
 def noise_and_clip_parameters(
-    parameters: Generator, max_grad_norm: float, noise_multiplier: float
+    parameters: Generator, l2_norm_clip: float, noise_multiplier: float
 ) -> None:
     """Noise and clip model parameters in place
 
     Args:
         parameters (Generator): torch.nn.Module.parameters()
-        max_grad_norm (float): clip threshold or C value
+        l2_norm_clip (float): clip threshold or C value
         noise_multiplier (float): noise multiplier
     """
-    std = noise_multiplier * max_grad_norm
+    std = noise_multiplier * l2_norm_clip
     with torch.no_grad():
         for param in parameters:
             # clip
-            param = clip_parameter(param, clip_threshold=max_grad_norm)
+            param = clip_parameter(param, clip_threshold=l2_norm_clip)
             # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
             param = noise_parameter(param, std=std)
 

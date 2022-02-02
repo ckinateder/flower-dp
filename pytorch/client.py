@@ -1,6 +1,6 @@
 import os
 from collections import OrderedDict
-from typing import Union
+from typing import Union, Callable, Optional
 
 import flwr as fl
 import numpy as np
@@ -85,7 +85,9 @@ class CifarClient(fl.client.NumPyClient):
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
         optimizer = torch.optim.SGD(
-            self.net.parameters(), lr=self.learning_rate, momentum=0.9
+            self.net.parameters(),
+            lr=self.learning_rate,
+            momentum=0.9,
         )
         # put in train mode
         self.net.train()
@@ -106,7 +108,7 @@ class CifarClient(fl.client.NumPyClient):
                 # finally, clip and noise
                 privacy.noise_and_clip_parameters(
                     self.net.parameters(),
-                    max_grad_norm=self.l2_norm_clip,
+                    l2_norm_clip=self.l2_norm_clip,
                     noise_multiplier=self.noise_multiplier,
                 )
 
