@@ -19,7 +19,7 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
         failures: List[BaseException],
     ) -> Optional[fl.common.Weights]:
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
-        sigma_d = privacy.calculate_sigma_d(epsilon=1.5, N=self.min_available_clients)
+        sigma_d = privacy.calculate_sigma_d(epsilon=19.48, N=self.min_available_clients)
         # add noise
         if aggregated_weights is not None:
             noised_weights = list(aggregated_weights)

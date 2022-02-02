@@ -62,74 +62,6 @@ def calculate_sigma_d(
     return (2 * c * C * (((T ** 2) - ((L ** 2) * N)) ** 0.5)) / (m * N * epsilon)
 
 
-def clip_parameter(parameter: torch.Tensor, clip_threshold: float) -> torch.Tensor:
-    """Clip the parameter
-
-    Args:
-        parameter (torch.Tensor): input parameter
-        clip_threshold (float): C value
-    Returns:
-        torch.Tensor: clipped parrameter
-
-    >>> c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
-    >>> clip_parameter(c, 5)
-    tensor([[ 0.8839,  1.7678,  2.6517],
-            [-0.8839,  0.8839,  3.5355]])
-    """
-    # using formula for page 4, algorithm 1, line 7 in https://arxiv.org/pdf/1911.00222.pdf
-    clipped_parameter = parameter / max(1, torch.norm(parameter) / clip_threshold)
-    return clipped_parameter
-
-
-def noise_parameter(parameter: torch.Tensor, std: float) -> torch.Tensor:
-    """Add gaussian noise to the given parameter
-
-    Args:
-        parameter (torch.Tensor): input parameter
-        std (float): std of the gaussian noise
-
-    Returns:
-        torch.Tensor: noised parameter
-
-    >>> std = 0.3
-    >>> tnsr = torch.Tensor([1, 4, 2, 4])
-    >>> ntnsr = noise_parameter(tnsr, std)
-    >>> noise = tnsr - ntnsr
-    >>> all([x <= std for x in noise])
-    True
-    """
-    noised_parameter = parameter + np.random.normal(scale=std)
-    return noised_parameter
-
-
-def noise_and_clip_parameters(
-    parameters: Generator, l2_norm_clip: float, noise_multiplier: float
-) -> None:
-    """Noise and clip model parameters in place
-
-    Args:
-        parameters (Generator): torch.nn.Module.parameters()
-        l2_norm_clip (float): clip threshold or C value
-        noise_multiplier (float): noise multiplier
-    """
-    std = noise_multiplier * l2_norm_clip
-    with torch.no_grad():
-        for param in parameters:
-            # clip
-            param = clip_parameter(param, clip_threshold=l2_norm_clip)
-            # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
-            param = noise_parameter(param, std=std)
-
-
-def noise_weights(
-    weights: fl.common.typing.Weights, sigma_d: float
-) -> fl.common.typing.Weights:
-    weights = weights.copy()
-    for i in range(len(weights)):
-        weights[i] += np.random.normal(scale=sigma_d)
-    return weights
-
-
 def get_privacy_spent(
     epochs: int,
     num_train_examples: int,
@@ -180,6 +112,72 @@ def get_privacy_spent(
         orders, rdp, target_delta=target_delta
     )
     return epsilon, delta, alpha
+
+
+def clip_parameter(parameter: torch.Tensor, clip_threshold: float) -> None:
+    """Clip the parameter in place
+
+    Args:
+        parameter (torch.Tensor): input parameter
+        clip_threshold (float): C value
+    Returns:
+        torch.Tensor: clipped parameter
+
+    >>> c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
+    >>> clip_parameter(c, 5)
+    >>> c
+    tensor([[ 0.8839,  1.7678,  2.6517],
+            [-0.8839,  0.8839,  3.5355]])
+    """
+    # using formula for page 4, algorithm 1, line 7 in https://arxiv.org/pdf/1911.00222.pdf
+    parameter.copy_(parameter / max(1, torch.norm(parameter) / clip_threshold))
+
+
+def noise_parameter(parameter: torch.Tensor, std: float) -> None:
+    """Add gaussian noise to the given parameter in place
+
+    Args:
+        parameter (torch.Tensor): input parameter
+        std (float): std of the gaussian noise
+
+    >>> std = 0.3
+    >>> ntnsr = torch.Tensor([1, 4, 2, 4])
+    >>> tnsr = ntnsr.clone()
+    >>> noise_parameter(tnsr, std)
+    >>> noise = tnsr - ntnsr
+    >>> all([x <= std for x in noise])
+    True
+    """
+    noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
+    parameter.add_(noise_vector)
+
+
+def noise_and_clip_parameters(
+    parameters: torch.Tensor, l2_norm_clip: float, noise_multiplier: float
+) -> torch.Tensor:
+    """Noise and clip model parameters in place
+
+    Args:
+        parameters (Generator): torch.nn.Module.parameters()
+        l2_norm_clip (float): clip threshold or C value
+        noise_multiplier (float): noise multiplier
+
+    #>>> np.random.seed(42)
+    >>> c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
+    >>> d = c.clone()
+    >>> noise_and_clip_parameters(c, 5, 0.8)
+    >>> ncd
+    """
+    ...
+
+
+def noise_weights(
+    weights: fl.common.typing.Weights, sigma_d: float
+) -> fl.common.typing.Weights:
+    weights = weights.copy()
+    for i in range(len(weights)):
+        weights[i] += np.random.normal(scale=sigma_d)
+    return weights
 
 
 if __name__ == "__main__":
