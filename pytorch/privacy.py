@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Tuple
+from typing import Tuple, Generator
 
 import flwr as fl
 import numpy as np
@@ -50,12 +50,11 @@ def calculate_sigma_d(
     """
     if L == None and T == None:
         L = 3
-        L = T
+        T = L
     elif L == None:  # if L not given but T is
         L = T
     elif T == None:  # if T not given but L is
         T = L
-
     if T <= L * (N ** 0.5):
         return 0
     # for epsilon (0, 1) - need to verify for outside bound
@@ -101,6 +100,25 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> torch.Tensor:
     """
     noised_parameter = parameter + np.random.normal(scale=std)
     return noised_parameter
+
+
+def noise_and_clip_parameters(
+    parameters: Generator, max_grad_norm: float, noise_multiplier: float
+) -> None:
+    """Noise and clip model parameters in place
+
+    Args:
+        parameters (Generator): torch.nn.Module.parameters()
+        max_grad_norm (float): clip threshold or C value
+        noise_multiplier (float): noise multiplier
+    """
+    std = noise_multiplier * max_grad_norm
+    with torch.no_grad():
+        for param in parameters:
+            # clip
+            param = clip_parameter(param, clip_threshold=max_grad_norm)
+            # noise_multiplier: Ratio of the standard deviation (of the gaussian noise) to the clipping norm.
+            param = noise_parameter(param, std=std)
 
 
 def noise_weights(

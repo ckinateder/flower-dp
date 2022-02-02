@@ -10,7 +10,7 @@ import privacy
 
 class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
     def __init__(self, *args, **kwargs) -> None:
-        super(*args, **kwargs).__init__()
+        super().__init__(*args, **kwargs)
 
     def aggregate_fit(
         self,
@@ -35,5 +35,5 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
 
 
 if __name__ == "__main__":
-    strategy = ServerSideNoiseStrategy()  # (min_available_clients=3)
+    strategy = ServerSideNoiseStrategy(min_available_clients=3)
     fl.server.start_server(config={"num_rounds": 3}, strategy=strategy)
