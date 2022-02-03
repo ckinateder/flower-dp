@@ -153,8 +153,8 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
 
 
 def noise_and_clip_parameters(
-    parameters: torch.Tensor, l2_norm_clip: float, noise_multiplier: float
-) -> torch.Tensor:
+    parameters: Generator, l2_norm_clip: float, noise_multiplier: float
+):
     """Noise and clip model parameters in place
 
     Args:
@@ -162,13 +162,16 @@ def noise_and_clip_parameters(
         l2_norm_clip (float): clip threshold or C value
         noise_multiplier (float): noise multiplier
 
-    #>>> np.random.seed(42)
+    >>> np.random.seed(42)
     >>> c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
     >>> d = c.clone()
     >>> noise_and_clip_parameters(c, 5, 0.8)
-    >>> ncd
+    >>> d
     """
-    ...
+    with torch.no_grad():
+        for param in parameters:
+            clip_parameter(param, clip_threshold=l2_norm_clip)
+            noise_parameter(param, std=noise_multiplier * l2_norm_clip)
 
 
 def noise_weights(

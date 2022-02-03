@@ -78,8 +78,6 @@ class DPSGD(torch.optim.SGD):
         self.noise_multiplier = noise_multiplier
         self.l2_norm_clip = l2_norm_clip
 
-
-"""
     def step(self, closure=None) -> Optional[float]:
         closure = super().step()
         params = []  # for extracted params
@@ -97,7 +95,8 @@ class DPSGD(torch.optim.SGD):
             noise_multiplier=self.noise_multiplier,
         )
         return closure
-"""
+
+
 """
 
 
@@ -165,13 +164,12 @@ class CifarClient(fl.client.NumPyClient):
                 # update weights
                 optimizer.step()
 
-                # noise
-                with torch.no_grad():
-                    for param in self.net.parameters():
-                        privacy.clip_parameter(param, clip_threshold=self.l2_norm_clip)
-                        privacy.noise_parameter(
-                            param, std=self.noise_multiplier * self.l2_norm_clip
-                        )
+                # noise and clip
+                privacy.noise_and_clip_parameters(
+                    self.net.parameters(),
+                    l2_norm_clip=self.l2_norm_clip,
+                    noise_multiplier=self.noise_multiplier,
+                )
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
