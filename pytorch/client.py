@@ -158,22 +158,9 @@ class CifarClient(fl.client.NumPyClient):
                 # send to device and compute loss
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
-
-                # Zero the gradients and run backward pass.
-                optimizer.zero_grad()
+                optimizer.zero_grad()  # zero_grad
                 loss.backward()
-
-                # update weights
                 optimizer.step()
-
-                # noise and clip
-                """
-                privacy.noise_and_clip_parameters(
-                    self.net.parameters(),
-                    l2_norm_clip=self.l2_norm_clip,
-                    noise_multiplier=self.noise_multiplier,
-                )
-                """
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""

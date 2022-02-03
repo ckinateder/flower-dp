@@ -7,10 +7,10 @@ import server
 # convert to cli args
 if __name__ == "__main__":
     # global variables
-    num_clients = 6
+    num_clients = 3
 
     # client variables
-    epochs = 3
+    epochs = 1
     batch_size = 32
     l2_norm_clip = 1.5
     noise_multiplier = 0.3
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # server variables
     min_available_clients = 3
-    num_rounds = 10
+    num_rounds = 3
     target_epsilon = 19.74
 
     # create server process
