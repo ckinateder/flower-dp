@@ -9,6 +9,8 @@ import privacy
 
 
 class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
+    """Federated average strategy with server side gaussian noise"""
+
     def __init__(self, target_epsilon: float = 10.0, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.target_epsilon = target_epsilon
@@ -40,6 +42,12 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
 def main(
     min_clients: int = 3, num_rounds: int = 3, target_epsilon: float = 19.74
 ) -> None:
+    """Run the server
+    Args:
+        min_clients (int, optional): minimum number of clients to train. Defaults to 3.
+        num_rounds (int, optional): number of rounds to run. Defaults to 3.
+        target_epsilon (float, optional): epsilon target privacy budget. Defaults to 19.74.
+    """
     strategy = ServerSideNoiseStrategy(
         target_epsilon=target_epsilon,
         min_available_clients=min_clients,

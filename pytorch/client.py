@@ -59,6 +59,23 @@ class Net(nn.Module):
         return x
 
 
+def print_grads(params, filename: str) -> None:
+    """Print the grads to file given params and filename. For debugging.
+    Usage:
+        print_grads(params, "original.txt")
+    """
+    with open(filename, "w+") as f:
+        for p in params:
+            f.write(str(p.grad) + "\n")
+
+
+def print_params(params, filename: str) -> None:
+    """Print the params to file given params and filename. For debugging"""
+    with open(filename, "w+") as f:
+        for p in params:
+            f.write(str(p) + "\n")
+
+
 class DPSGD(torch.optim.SGD):
     """Differentially private extension of SGD."""
 
@@ -69,7 +86,7 @@ class DPSGD(torch.optim.SGD):
         *args,
         **kwargs,
     ) -> None:
-        """[summary]
+        """Custom differentially private optimizer
 
         Args:
             noise_multiplier (float, optional): Noise multiplier. Defaults to 0.5.
@@ -88,7 +105,6 @@ class DPSGD(torch.optim.SGD):
             for p in group["params"]:
                 if p.grad is not None:
                     params.append(p)
-
         # apply noise
         privacy.noise_and_clip_parameters(
             params,
@@ -99,6 +115,8 @@ class DPSGD(torch.optim.SGD):
 
 
 class CifarClient(fl.client.NumPyClient):
+    """Numpy client"""
+
     def __init__(
         self,
         trainloader: DataLoader,
@@ -111,6 +129,16 @@ class CifarClient(fl.client.NumPyClient):
         *args,
         **kwargs,
     ) -> None:
+        """Create the client
+        Args:
+            trainloader (DataLoader): pytorch dataloader with trainset
+            testloader (DataLoader): pytorch dataloader with testset
+            batch_size (int, optional): Model batch size. Defaults to 32.
+            epochs (int, optional): Number of train epochs. Defaults to 1.
+            l2_norm_clip (float, optional): Euclidian norm clip. Defaults to 1.5.
+            noise_multiplier (float, optional): Noise multiplier. Defaults to 0.3.
+            learning_rate (float, optional): Learning rate of optimizer. Defaults to 0.001.
+        """
         super().__init__(*args, **kwargs)
         self.batch_size = batch_size
         self.epochs = epochs
@@ -205,6 +233,15 @@ def main(
     learning_rate: float = 0.001,
     host: str = "[::]:8080",
 ) -> None:
+    """Run the client
+    Args:
+        epochs (int, optional): Number of train epochs. Defaults to 1.
+        batch_size (int, optional): Model batch size. Defaults to 32.
+        l2_norm_clip (float, optional): Euclidian norm clip. Defaults to 1.5.
+        noise_multiplier (float, optional): Noise multiplier. Defaults to 0.3.
+        learning_rate (float, optional): Learning rate of optimizer. Defaults to 0.001.
+        host (str, optional): host to connect to. Defaults to "[::]:8080".
+    """
 
     # Load model and data
     trainloader, testloader = load_data(batch_size)
