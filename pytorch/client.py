@@ -143,8 +143,10 @@ class CifarClient(fl.client.NumPyClient):
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = torch.optim.SGD(
-            self.net.parameters(),
+        optimizer = DPSGD(
+            params=self.net.parameters(),
+            noise_multiplier=self.noise_multiplier,
+            l2_norm_clip=self.l2_norm_clip,
             lr=self.learning_rate,
             momentum=0.9,
         )
@@ -165,11 +167,13 @@ class CifarClient(fl.client.NumPyClient):
                 optimizer.step()
 
                 # noise and clip
+                """
                 privacy.noise_and_clip_parameters(
                     self.net.parameters(),
                     l2_norm_clip=self.l2_norm_clip,
                     noise_multiplier=self.noise_multiplier,
                 )
+                """
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
@@ -217,12 +221,14 @@ class CifarClient(fl.client.NumPyClient):
         return float(loss), self.num_examples["testset"], {"accuracy": float(accuracy)}
 
 
-if __name__ == "__main__":
-    epochs = 1
-    batch_size = 32
-    l2_norm_clip = 1.5
-    noise_multiplier = 0.1
-    learning_rate = 0.001
+def main(
+    epochs: int = 1,
+    batch_size: int = 32,
+    l2_norm_clip: float = 1.5,
+    noise_multiplier: float = 1.5,
+    learning_rate: float = 0.001,
+    host: str = "[::]:8080",
+) -> None:
 
     # Load model and data
     trainloader, testloader = load_data(batch_size)
@@ -237,4 +243,14 @@ if __name__ == "__main__":
         noise_multiplier=noise_multiplier,
         learning_rate=learning_rate,
     )
-    fl.client.start_numpy_client("[::]:8080", client=client)
+    fl.client.start_numpy_client(host, client=client)
+
+
+if __name__ == "__main__":
+    epochs = 3
+    batch_size = 32
+    l2_norm_clip = 1.5
+    noise_multiplier = 0.5
+    learning_rate = 0.001
+
+    main(epochs, batch_size, l2_norm_clip, noise_multiplier, learning_rate)
