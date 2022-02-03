@@ -141,12 +141,9 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
         std (float): std of the gaussian noise
 
     >>> std = 0.3
-    >>> ntnsr = torch.Tensor([1, 4, 2, 4])
+    >>> ntnsr = torch.Tensor([1, 4, 2, 7])
     >>> tnsr = ntnsr.clone()
     >>> noise_parameter(tnsr, std)
-    >>> noise = tnsr - ntnsr
-    >>> all([x <= std for x in noise])
-    True
     """
     noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
     parameter.add_(noise_vector)
@@ -162,11 +159,9 @@ def noise_and_clip_parameters(
         l2_norm_clip (float): clip threshold or C value
         noise_multiplier (float): noise multiplier
 
-    >>> np.random.seed(42)
-    >>> c = torch.tensor([[1, 2, 3], [-1, 1, 4]], dtype=torch.float)
+    >>> c = torch.tensor([[0.51, 0.2, 0.43], [-0.47, 0.56, -0.85]], dtype=torch.float)
     >>> d = c.clone()
-    >>> noise_and_clip_parameters(c, 5, 0.8)
-    >>> d
+    >>> noise_and_clip_parameters(c, 1.5, 0.05)
     """
     with torch.no_grad():
         for param in parameters:
