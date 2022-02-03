@@ -16,6 +16,7 @@ from torch.nn.utils import vector_to_parameters, parameters_to_vector
 
 import privacy
 
+
 # cuda device
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -97,19 +98,6 @@ class DPSGD(torch.optim.SGD):
         return closure
 
 
-"""
-
-
-param_vector = parameters_to_vector(self.net.parameters())
-
-privacy.clip_parameter(param_vector, clip_threshold=self.l2_norm_clip)
-privacy.noise_parameter(
-param_vector, std=self.noise_multiplier * self.l2_norm_clip
-)
-vector_to_parameters(param_vector, self.net.parameters())
-"""
-
-
 class CifarClient(fl.client.NumPyClient):
     def __init__(
         self,
@@ -150,6 +138,7 @@ class CifarClient(fl.client.NumPyClient):
             lr=self.learning_rate,
             momentum=0.9,
         )
+
         # put in train mode
         self.net.train()
 
@@ -158,7 +147,7 @@ class CifarClient(fl.client.NumPyClient):
                 # send to device and compute loss
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
-                optimizer.zero_grad()  # zero_grad
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 

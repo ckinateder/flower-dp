@@ -145,14 +145,16 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
     >>> tnsr = ntnsr.clone()
     >>> noise_parameter(tnsr, std)
     """
-    noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
+    noise_drawn = np.random.normal(scale=std)
+    # noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
+    noise_vector = torch.Tensor(np.broadcast_to(noise_drawn, parameter.size()))
     parameter.add_(noise_vector)
 
 
 def noise_and_clip_parameters(
     parameters: Generator, l2_norm_clip: float, noise_multiplier: float
 ):
-    """Noise and clip model parameters in place
+    """Noise and clip model param GRADIENTS in place
 
     Args:
         parameters (Generator): torch.nn.Module.parameters()
@@ -165,8 +167,8 @@ def noise_and_clip_parameters(
     """
     with torch.no_grad():
         for param in parameters:
-            clip_parameter(param, clip_threshold=l2_norm_clip)
-            noise_parameter(param, std=noise_multiplier * l2_norm_clip)
+            clip_parameter(param.grad, clip_threshold=l2_norm_clip)
+            noise_parameter(param.grad, std=noise_multiplier * l2_norm_clip)
 
 
 def noise_weights(
