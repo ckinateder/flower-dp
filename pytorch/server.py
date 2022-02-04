@@ -40,18 +40,18 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
 
 
 def main(
-    min_clients: int = 3, num_rounds: int = 3, target_epsilon: float = 19.74
+    clients_per_round: int = 3, num_rounds: int = 3, target_epsilon: float = 10
 ) -> None:
     """Run the server
     Args:
-        min_clients (int, optional): minimum number of clients to train. Defaults to 3.
+        clients_per_round (int, optional): minimum number of clients to train. Defaults to 3.
         num_rounds (int, optional): number of rounds to run. Defaults to 3.
-        target_epsilon (float, optional): epsilon target privacy budget. Defaults to 19.74.
+        target_epsilon (float, optional): epsilon target privacy budget. Defaults to 10.
     """
     strategy = ServerSideNoiseStrategy(
         target_epsilon=target_epsilon,
-        min_available_clients=min_clients,
-        min_fit_clients=min_clients,
+        min_available_clients=clients_per_round,
+        min_fit_clients=clients_per_round,
     )
     fl.server.start_server(config={"num_rounds": num_rounds}, strategy=strategy)
 

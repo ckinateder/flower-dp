@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Tuple, Generator
+from typing import Tuple, Generator, List
 
 import flwr as fl
 import numpy as np
@@ -159,9 +159,11 @@ def noise_and_clip_parameters(
         l2_norm_clip (float): clip threshold or C value
         noise_multiplier (float): noise multiplier
 
-    >>> c = torch.tensor([[0.51, 0.2, 0.43], [-0.47, 0.56, -0.85]], dtype=torch.float)
-    >>> d = c.clone()
-    >>> noise_and_clip_parameters(c, 1.5, 0.05)
+    >>> c = torch.tensor([[0.51, 0.2, 0.43], [-0.47, 0.56, -0.85]], requires_grad=True)
+    >>> c = c.mean()
+    >>> c.retain_grad()
+    >>> c.backward()
+    >>> noise_and_clip_parameters([c], 1.5, 0.05)
     """
     with torch.no_grad():
         for param in parameters:
@@ -169,12 +171,19 @@ def noise_and_clip_parameters(
             noise_parameter(param.grad, std=noise_multiplier * l2_norm_clip)
 
 
-def noise_weights(
-    weights: fl.common.typing.Weights, sigma_d: float
-) -> fl.common.typing.Weights:
+def noise_weights(weights: List[np.ndarray], sigma_d: float) -> List[np.ndarray]:
+    """Noise flower weights
+
+    Args:
+        weights (List[np.ndarray]): [description]
+        sigma_d (float): [description]
+
+    Returns:
+        List[np.ndarray]: [description]
+    """
     weights = weights.copy()
     for i in range(len(weights)):
-        weights[i] += np.random.normal(scale=sigma_d)
+        weights[i] += np.random.normal(scale=sigma_d, size=weights[i].shape)
     return weights
 
 

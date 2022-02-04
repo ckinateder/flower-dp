@@ -11,9 +11,9 @@ if __name__ == "__main__":
 
     # client variables
     epochs = 1
-    batch_size = 32
+    batch_size = 256
     l2_norm_clip = 1.5
-    noise_multiplier = 0.4
+    noise_multiplier = 1.0
     learning_rate = 0.001
 
     # server variables
