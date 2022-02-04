@@ -145,9 +145,7 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
     >>> tnsr = ntnsr.clone()
     >>> noise_parameter(tnsr, std)
     """
-    noise_drawn = np.random.normal(scale=std)
-    # noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
-    noise_vector = torch.Tensor(np.broadcast_to(noise_drawn, parameter.size()))
+    noise_vector = torch.normal(mean=0, std=std, size=parameter.size())
     parameter.add_(noise_vector)
 
 

@@ -1,6 +1,6 @@
 import os
 from collections import OrderedDict
-from typing import Optional, Union
+from typing import Union
 
 import flwr as fl
 import numpy as np
@@ -11,11 +11,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from tqdm import tqdm
-from torch.nn.utils import vector_to_parameters, parameters_to_vector
-
 
 import privacy
-
 
 # cuda device
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -121,10 +118,10 @@ class CifarClient(fl.client.NumPyClient):
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = torch.optim.SGD(
+        optimizer = torch.optim.Adam(
             self.net.parameters(),
             lr=self.learning_rate,
-            momentum=0.9,
+            # momentum=0.9,
         )
 
         # put in train mode
@@ -183,7 +180,7 @@ class CifarClient(fl.client.NumPyClient):
             self.target_delta,
         )
         self.privacy_spent = epsilon
-        print(f"(ε = {epsilon:.2f}, δ = {delta}) for α = {best_alpha}")
+        print(f"(ε = {epsilon:.2f}, δ = {delta:2e}) for α = {best_alpha:.2f}")
         return self.get_parameters(), self.num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):
@@ -212,8 +209,8 @@ def main(
 
     # Load model and data
     trainloader, testloader = load_data(batch_size)
-    # Start Flower client
 
+    # Start Flower client
     client = CifarClient(
         trainloader,
         testloader,
