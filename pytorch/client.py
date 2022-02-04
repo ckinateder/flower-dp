@@ -76,44 +76,6 @@ def print_params(params, filename: str) -> None:
             f.write(str(p) + "\n")
 
 
-class DPSGD(torch.optim.SGD):
-    """Differentially private extension of SGD."""
-
-    def __init__(
-        self,
-        noise_multiplier: float = 0.5,
-        l2_norm_clip: float = 1.5,
-        *args,
-        **kwargs,
-    ) -> None:
-        """Custom differentially private optimizer
-
-        Args:
-            noise_multiplier (float, optional): Noise multiplier. Defaults to 0.5.
-            l2_norm_clip (float, optional): Max euclidian norm. Defaults to 1.5.
-        """
-        super().__init__(*args, **kwargs)
-        self.noise_multiplier = noise_multiplier
-        self.l2_norm_clip = l2_norm_clip
-
-    def step(self, closure=None) -> Optional[float]:
-        closure = super().step()
-        params = []  # for extracted params
-
-        # extract parameters from self.param_groups
-        for group in self.param_groups:
-            for p in group["params"]:
-                if p.grad is not None:
-                    params.append(p)
-        # apply noise
-        privacy.noise_and_clip_parameters(
-            params,
-            l2_norm_clip=self.l2_norm_clip,
-            noise_multiplier=self.noise_multiplier,
-        )
-        return closure
-
-
 class CifarClient(fl.client.NumPyClient):
     """Numpy client"""
 
@@ -159,10 +121,8 @@ class CifarClient(fl.client.NumPyClient):
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = DPSGD(
-            params=self.net.parameters(),
-            noise_multiplier=self.noise_multiplier,
-            l2_norm_clip=self.l2_norm_clip,
+        optimizer = torch.optim.SGD(
+            self.net.parameters(),
             lr=self.learning_rate,
             momentum=0.9,
         )
@@ -175,9 +135,16 @@ class CifarClient(fl.client.NumPyClient):
                 # send to device and compute loss
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
+                # compute and apply grads
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                # apply noise
+                privacy.noise_and_clip_parameters(
+                    self.net.parameters(),
+                    l2_norm_clip=self.l2_norm_clip,
+                    noise_multiplier=self.noise_multiplier,
+                )
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
