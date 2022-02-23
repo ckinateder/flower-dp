@@ -56,23 +56,6 @@ class Net(nn.Module):
         return x
 
 
-def print_grads(params, filename: str) -> None:
-    """Print the grads to file given params and filename. For debugging.
-    Usage:
-        print_grads(params, "original.txt")
-    """
-    with open(filename, "w+") as f:
-        for p in params:
-            f.write(str(p.grad) + "\n")
-
-
-def print_params(params, filename: str) -> None:
-    """Print the params to file given params and filename. For debugging"""
-    with open(filename, "w+") as f:
-        for p in params:
-            f.write(str(p) + "\n")
-
-
 class CifarClient(fl.client.NumPyClient):
     """Numpy client"""
 
@@ -118,11 +101,7 @@ class CifarClient(fl.client.NumPyClient):
     def train(self) -> None:
         """Train the network on the training set."""
         criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = torch.optim.Adam(
-            self.net.parameters(),
-            lr=self.learning_rate,
-            # momentum=0.9,
-        )
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
         # put in train mode
         self.net.train()
@@ -132,10 +111,12 @@ class CifarClient(fl.client.NumPyClient):
                 # send to device and compute loss
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 loss = criterion(self.net(images), labels)
-                # compute and apply grads
+
+                # compute and apply gradients
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+
                 # apply noise
                 privacy.noise_and_clip_parameters(
                     self.net.parameters(),

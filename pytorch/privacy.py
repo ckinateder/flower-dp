@@ -2,9 +2,7 @@ import logging
 import math
 from typing import Tuple, Generator, List
 
-import flwr as fl
 import numpy as np
-import tensorflow as tf
 
 import tensorflow_privacy as tfp  # for privacy calculations
 import torch
@@ -172,14 +170,16 @@ def noise_and_clip_parameters(
 
 
 def noise_weights(weights: List[np.ndarray], sigma_d: float) -> List[np.ndarray]:
-    """Noise flower weights
+    """Noise flower weights. Weights will be noised with individual drawings
+    from the normal - i.e. if weights are an array with shape (1, 5), there
+    will be 5 unique drawings from the normal.
 
     Args:
-        weights (List[np.ndarray]): [description]
-        sigma_d (float): [description]
+        weights (List[np.ndarray]): list of numpy arrays - weights
+        sigma_d (float): std of normal distribution
 
     Returns:
-        List[np.ndarray]: [description]
+        List[np.ndarray]: noised copy of weights
     """
     weights = weights.copy()
     for i in range(len(weights)):

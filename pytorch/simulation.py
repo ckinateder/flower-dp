@@ -4,22 +4,21 @@ from typing import List
 import client
 import server
 
-# convert to cli args
 if __name__ == "__main__":
     # global variables
-    num_clients = 3
+    num_clients = 3  # total number of clients
 
     # client variables
-    epochs = 1
-    batch_size = 256
-    l2_norm_clip = 1.5
-    noise_multiplier = 1.0
-    learning_rate = 0.001
+    epochs = 1  # how many epochs to go through
+    batch_size = 256  # batch size for training
+    l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
+    noise_multiplier = 1.0  # how much noise to add in
+    learning_rate = 0.001  # how quickly the model learns
 
     # server variables
-    min_available_clients = 3
-    num_rounds = 3
-    target_epsilon = 19.74
+    min_available_clients = 3  # minimum number of clients to train/val
+    num_rounds = 3  # number of train/val rounds to go through
+    target_epsilon = 19.74  # target privacy guarantee
 
     # create server process
     server_process = Process(
