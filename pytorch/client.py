@@ -93,7 +93,7 @@ class CifarClient(fl.client.NumPyClient):
             "trainset": len(trainloader.dataset),
             "testset": len(testloader.dataset),
             "total": len(trainloader.dataset) + len(testloader.dataset),
-        }
+        }  # stored in a dictionary
         self.privacy_spent = None
         self.target_delta = 1 / self.num_examples["total"]
         self.learning_rate = learning_rate

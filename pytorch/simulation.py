@@ -19,6 +19,7 @@ if __name__ == "__main__":
     min_available_clients = 3  # minimum number of clients to train/val
     num_rounds = 3  # number of train/val rounds to go through
     target_epsilon = 19.74  # target privacy guarantee
+    # delta is assumed to be `1/num_training_examples`
 
     # create server process
     server_process = Process(
