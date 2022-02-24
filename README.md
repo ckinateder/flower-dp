@@ -22,7 +22,7 @@ docker run --rm -it -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest bash
 Alternatively, the simulation can be run directly, without interactively entering the container.
 
 ```bash
-docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest python simulation.py
+docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest python pytorch/simulation.py
 ```
 
 ## Execution
@@ -32,7 +32,7 @@ docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest python simul
 Trying the demo is as simple as running
 
 ```bash
-python simulation.py
+python pytorch/simulation.py
 ```
 
 Experiment with the following variables (in the main function) to learn how each affects the system.
