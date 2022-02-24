@@ -22,13 +22,13 @@ To build and run the docker image
 
 ```bash
 docker build -t flower-dp:latest .
-docker run --rm -it -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest bash
+docker run --rm -it -v `pwd`:`pwd` -w `pwd` --gpus all --network host flower-dp:latest bash
 ```
 
 Alternatively, the simulation can be run directly, without interactively entering the container.
 
 ```bash
-docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest python pytorch/simulation.py
+docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all --network host flower-dp:latest python3 pytorch/simulation.py
 ```
 
 ## Execution
