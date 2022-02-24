@@ -4,6 +4,10 @@ Implementing custom differential privacy into the flower.dev federated learning 
 
 ## Setup
 
+You can use virtualenv or Docker.
+
+### Virtualenv
+
 To setup with a virtual environment, use `virtualenv`.
 
 ```bash
@@ -11,6 +15,8 @@ virtualenv env
 source env/bin/activate
 pip3 install -r requirements.txt
 ```
+
+### Docker
 
 To build and run the docker image
 
