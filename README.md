@@ -38,7 +38,7 @@ docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all flower-dp:latest python pytor
 Trying the demo is as simple as running
 
 ```bash
-python pytorch/simulation.py
+python3 pytorch/simulation.py
 ```
 
 Experiment with the following variables (in the main function) to learn how each affects the system.
