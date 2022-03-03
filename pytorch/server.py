@@ -1,10 +1,7 @@
+from typing import List, Optional, Tuple
+
 import flwr as fl
 
-from typing import List, Tuple, Optional
-from io import BytesIO
-
-import numpy as np
-from typing import cast
 import privacy
 
 
@@ -14,6 +11,10 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
     def __init__(self, target_epsilon: float = 10.0, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.target_epsilon = target_epsilon
+        # calculate std of the samples from the normal
+        self.sigma_d = privacy.calculate_sigma_d(
+            epsilon=self.target_epsilon, N=self.min_available_clients
+        )
 
     def aggregate_fit(
         self,
@@ -24,7 +25,7 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
         """Call the superclass strategy aggregate_fit and then noise the weights.
 
         Args:
-            rnd (int): round number
+            rnd (int): current round number
             results (List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]]): results
             failures (List[BaseException]): failure list
 
@@ -34,23 +35,18 @@ class ServerSideNoiseStrategy(fl.server.strategy.FedAvg):
         # call the superclass method
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
 
-        # calculate std of the samples from the normal
-        sigma_d = privacy.calculate_sigma_d(
-            epsilon=self.target_epsilon, N=self.min_available_clients
-        )
-
         # add noise
         if aggregated_weights is not None:
             noised_weights = list(aggregated_weights)  # make into list so assignable
             for i in range(len(aggregated_weights)):
                 if type(aggregated_weights[i]) == fl.common.typing.Parameters:
                     weights = fl.common.parameters_to_weights(aggregated_weights[i])
-                    weights = privacy.noise_weights(weights, sigma_d)  # noise weights
+                    weights = privacy.noise_weights(
+                        weights, self.sigma_d
+                    )  # noise weights
                     noised_parameters = fl.common.weights_to_parameters(weights)
                     noised_weights[i] = noised_parameters  # reassign parameters
-
-            aggregated_weights = tuple(noised_weights)  # convert back to tuple
-        return aggregated_weights
+        return tuple(noised_weights)
 
 
 def main(

@@ -149,7 +149,7 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
 
 def noise_and_clip_parameters(
     parameters: Generator, l2_norm_clip: float, noise_multiplier: float
-):
+) -> None:
     """Noise and clip model param GRADIENTS in place
 
     Args:
