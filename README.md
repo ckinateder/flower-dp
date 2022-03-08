@@ -1,17 +1,17 @@
 # flower-dp
 
-A custom $(\epsilon$, $\delta)$-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass $\epsilon$ (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate $\epsilon$ from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a metric of privacy with real meaning.
+A custom *(ε, δ)*-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass *ε* (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate *ε* from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a metric of privacy with real meaning.
 
 `flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
 Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
 
 ## A Quick Overview of Differential Privacy for Federated Learning
 
-Imagine that you have two datasets $D$ and $D\prime$ that differ in only a single record (e.g., my data) and you interact with the data via a process or mechanism called M (this can be anything, more on this later). We can say that M is $\epsilon$-differentially private if for every possible output x, the probability that this output is observed never differs by more than exp($\epsilon$) between the two scenarios (with and without my data).[^dpsgd]
+Imagine that you have two datasets *D* and *D`* that differ in only a single record (e.g., my data) and you interact with the data via a process or mechanism called M (this can be anything, more on this later). We can say that M is *ε*-differentially private if for every possible output x, the probability that this output is observed never differs by more than *exp(ε)* between the two scenarios (with and without my data).[^dpsgd]
 
-In our scenerio, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter $C$ or `l2_norm_clip`.  
+In our scenerio, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
-$\delta$ is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of $\delta$ that are less than size of the dataset. For example, if the training dataset was $20000$ rows, $\delta \le 1/20000$.
+*δ* is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*.
 
 ## Getting Started
 
