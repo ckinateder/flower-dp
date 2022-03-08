@@ -140,6 +140,7 @@ def main(
     trainloader: DataLoader,
     testloader: DataLoader,
     model: nn.Module,
+    device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
     delta: float = 1 / 2e5,
     l2_norm_clip: float = 1.5,
@@ -155,6 +156,8 @@ def main(
         trainloader (DataLoader): pytorch dataloader with trainset
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
+        device (str, optional): device to compute on. Defaults to
+            torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
         epsilon (float, optional): privacy budget. Defaults to 10.
         delta (float, optional): Bounds the probability of the privacy guarantee
             not holding. A rule of thumb is to set it to be less than the
@@ -173,6 +176,7 @@ def main(
         trainloader,
         testloader,
         model,
+        device=device,
         batch_size=batch_size,
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,

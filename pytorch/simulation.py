@@ -101,6 +101,7 @@ if __name__ == "__main__":
                     trainloader,
                     testloader,
                     CIFAR10Net(),
+                    DEVICE,
                     epsilon,
                     delta,
                     l2_norm_clip,

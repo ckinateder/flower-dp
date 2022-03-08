@@ -5,6 +5,11 @@ A custom (ǫ, δ)-DP implementation into the [flower.dev](https://flower.dev/) f
 `flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
 Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
 
+## Todo
+
+- test cases
+- finish docs
+- ci/cd pipeline for test cases
 ## Getting Started
 
 Clone the repo at
