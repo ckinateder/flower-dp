@@ -1,12 +1,22 @@
 # flower-dp
 
-Implementing custom differential privacy into the flower.dev federated learning framework using pytorch.
+A custom (ǫ, δ)-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass epsilon (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate epsilon from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a set metric of privacy with real meaning.
 
-## Setup
+`flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
+Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
 
-You can use virtualenv or Docker.
+## Getting Started
 
-### Virtualenv
+Clone the repo at
+
+```bash
+git clone https://github.com/ckinateder/flower-dp.git
+cd flower-dp
+```
+
+To install the packages, you can use virtualenv (for a lightweight setup) or Docker (recommended for continued use).
+
+### virtualenv
 
 To setup with a virtual environment, use `virtualenv`.
 
@@ -31,7 +41,7 @@ Alternatively, the simulation can be run directly, without interactively enterin
 docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all --network host flower-dp:latest python3 pytorch/simulation.py
 ```
 
-## Execution
+## Usage
 
 **Make sure you execute through the container described above.**  
 
@@ -44,19 +54,31 @@ python3 pytorch/simulation.py
 Experiment with the following variables (in the main function) to learn how each affects the system.
 
 ```python
-# global variables
-num_clients = 3  # total number of clients
 
-# client variables
-epochs = 1  # how many epochs to go through
-batch_size = 256  # batch size for training
-l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
-noise_multiplier = 1.0  # how much noise to add in
-learning_rate = 0.001  # how quickly the model learns
-
-# server variables
-min_available_clients = 3  # minimum number of clients to train/val
-num_rounds = 3  # number of train/val rounds to go through
-target_epsilon = 19.74  # target privacy guarantee
-# delta is assumed to be `1/num_training_examples`
 ```
+
+## Explanations
+
+Number of exposures is assumed to equal number of rounds.
+
+## Links
+
+### Frameworks
+
+- [flower.dev](https://flower.dev/)
+- [pytorch](https://pytorch.org/)
+- [tensorfow_privacy](https://www.tensorflow.org/responsible_ai/privacy/guide)
+
+### Papers Referenced
+
+- [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
+- [Understanding Gradient Clipping in Private SGD: A Geometric Perspective](https://proceedings.neurips.cc/paper/2020/file/9ecff5455677b38d19f49ce658ef0608-Paper.pdf)
+
+### Material for Future Reference
+
+- [AdaCliP: Adaptive Clipping for Private SGD](https://doi.org/10.48550/arXiv.1908.07643)
+- [Renyi Differential Privacy](https://arxiv.org/abs/1702.07476v3)
+- [Deep Learning with Differential Privacy](https://arxiv.org/abs/1607.00133)
+- [Measuring RDP](https://www.tensorflow.org/responsible_ai/privacy/guide/measure_privacy)
+- [Compute RDP Parameters](https://www.tensorflow.org/responsible_ai/privacy/tutorials/classification_privacy)
+- [rdp_accountant](https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/analysis/rdp_accountant.py)

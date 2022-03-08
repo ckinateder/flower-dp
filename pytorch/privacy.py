@@ -10,14 +10,29 @@ import torch
 logger = logging.getLogger(__name__)
 
 
+def calculate_c(delta: float) -> float:
+    """Calculate c value based on section IIC in 1911.00222
+
+    Args:
+        delta (float): delta value
+
+    Returns:
+        float: c value
+
+    >>> calculate_c(2 / 1e5)
+    4.699557816587533
+    """
+    return (2 * math.log(1.25 / delta)) ** 0.5
+
+
 def calculate_sigma_d(
     epsilon: float,
     delta: float = 1 / 2e5,
-    C: float = 1.5,
-    L: int = None,
-    T: int = None,
-    N: int = 2,
-    m: int = 1e5,
+    l2_norm_clip: float = 1.5,
+    num_exposures: int = None,
+    num_rounds: int = None,
+    num_clients: int = 2,
+    min_dataset_size: int = 1e5,
 ) -> float:
     """Calculate sigma_d, or the std of the normal for server-side noising.
     Based off theroem 1 in 1911.00222
@@ -29,16 +44,15 @@ def calculate_sigma_d(
         delta (float, optional): Bounds the probability of the privacy guarantee
             not holding. A rule of thumb is to set it to be less than the
             inverse of the size of the training dataset. Defaults to 1 / 2e5.
-        C (int, optional): l2_norm_clip - clipping threshold for bounding
-            weights. Defaults to 1.5.
-        L (int, optional): exposures of local parameters - number of times
+        l2_norm_clip (int, optional): l2_norm_clip - clipping threshold for gradients. Defaults to 1.5.
+        num_exposures (int, optional): exposures of local parameters - number of times
             local params are uploaded to server. Defaults to None, which is
-            then set to value of T if given, or 3.
-        T (int, optional): num rounds - number of aggregation times. Must be
-            greater than or equal to L. Defaults to None, which is
-            then set to value of L if given, or 3.
-        N (int, optional): number of clients. Defaults to 2.
-        m (int, optional): minimum size of local datasets. Defaults to 1e5.
+            then set to value of num_rounds if given, or 3.
+        num_rounds (int, optional): num rounds - number of aggregation times. Must be
+            greater than or equal to num_exposures. Defaults to None, which is
+            then set to value of num_exposures if given, or 3.
+        num_clients (int, optional): number of clients. Defaults to 2.
+        min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
 
     Returns:
         float: sigma_d
@@ -46,6 +60,11 @@ def calculate_sigma_d(
     >>> calculate_sigma_d(0.8, 1 / 1e5, 1.5, 2, 3, 2, 1e4)
     0.0009084009867385104
     """
+    T = num_rounds
+    L = num_exposures
+    N = num_clients
+    m = min_dataset_size
+    C = l2_norm_clip
     if L == None and T == None:
         L = 3
         T = L
@@ -55,61 +74,44 @@ def calculate_sigma_d(
         T = L
     if T <= L * (N ** 0.5):
         return 0
-    # for epsilon (0, 1) - need to verify for outside bound
-    c = (2 * math.log(1.25 / delta)) ** 0.5
+    c = calculate_c(delta)
     return (2 * c * C * (((T ** 2) - ((L ** 2) * N)) ** 0.5)) / (m * N * epsilon)
 
 
-def get_privacy_spent(
-    epochs: int,
-    num_train_examples: int,
-    batch_size: int,
-    noise_multiplier: float,
-    target_delta: float = None,
-) -> Tuple[float, float, float]:
-    """Computes epsilon value for given hyperparameters.
-    Based on
-    github.com/tensorflow/privacy/blob/master/tutorials/mnist_dpsgd_tutorial_keras.py
+def calculate_sigma_u(
+    epsilon: float,
+    delta: float = 1 / 2e5,
+    l2_norm_clip: float = 1.5,
+    num_exposures: int = 3,
+    min_dataset_size: int = 1e5,
+) -> float:
+    """Calculate sigma_d, or the std of the normal for server-side noising.
+    Based off theroem 1 in 1911.00222
 
     Args:
-        epochs (int): Number of training epochs
-        num_train_examples (int): Number of training examples
-        batch_size (int): batch size
-        noise_multiplier (float): noise multiplier
-        target_delta (float, Optional): target delta. If given None, will
-            compute to 1 / num_train_examples. Defaults to None.
+        epsilon (float): measures the strength of the privacy guarantee by
+            bounding how much the probability of a particular model output
+            can vary by including (or excluding) a single training point.
+        delta (float, optional): Bounds the probability of the privacy guarantee
+            not holding. A rule of thumb is to set it to be less than the
+            inverse of the size of the training dataset. Defaults to 1 / 2e5.
+        l2_norm_clip (int, optional): l2_norm_clip - clipping threshold for gradients. Defaults to 1.5.
+        num_exposures (int, optional): exposures of local parameters - number of times
+            local params are uploaded to server. Defaults to 3.
+        min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
 
     Returns:
-        Tuple[float, float, float]: [description]
+        float: sigma_d
 
-    >>> get_privacy_spent(1, 5e5, 32, 0.3, 2e-5)
-    (12.990307141325937, 2e-05, 1.9)
-    >>> get_privacy_spent(1, 5e5, 32, 0.8, 2e-06)
-    (0.8856169037944343, 2e-06, 12.0)
-    >>> get_privacy_spent(1, 5e5, 32, 0.8)
-    (0.8856169037944343, 2e-06, 12.0)
+    >>> calculate_sigma_d(0.8, 1 / 1e5, 1.5, 2, 3, 2, 1e4)
+    0.0009084009867385104
     """
+    L = num_exposures
+    m = min_dataset_size
+    C = l2_norm_clip
+    c = calculate_c(delta)
 
-    if noise_multiplier == 0.0:
-        return float("inf")
-    if target_delta == None:
-        target_delta = 1 / num_train_examples
-
-    steps = epochs * num_train_examples // batch_size
-    orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
-    sampling_probability = batch_size / num_train_examples
-    rdp = tfp.privacy.analysis.rdp_accountant.compute_rdp(
-        q=sampling_probability,
-        noise_multiplier=noise_multiplier,
-        steps=steps,
-        orders=orders,
-    )
-
-    # Delta is set to approximate 1 / (number of training points).
-    epsilon, delta, alpha = tfp.privacy.analysis.rdp_accountant.get_privacy_spent(
-        orders, rdp, target_delta=target_delta
-    )
-    return epsilon, delta, alpha
+    return (2 * C * c * L) / (epsilon * m)
 
 
 def clip_parameter(parameter: torch.Tensor, clip_threshold: float) -> None:
@@ -148,14 +150,14 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
 
 
 def noise_and_clip_parameters(
-    parameters: Generator, l2_norm_clip: float, noise_multiplier: float
+    parameters: Generator, l2_norm_clip: float, sigma: float
 ) -> None:
     """Noise and clip model param GRADIENTS in place
 
     Args:
         parameters (Generator): torch.nn.Module.parameters()
         l2_norm_clip (float): clip threshold or C value
-        noise_multiplier (float): noise multiplier
+        sigma (float): std of normal dist
 
     >>> c = torch.tensor([[0.51, 0.2, 0.43], [-0.47, 0.56, -0.85]], requires_grad=True)
     >>> c = c.mean()
@@ -166,24 +168,24 @@ def noise_and_clip_parameters(
     with torch.no_grad():
         for param in parameters:
             clip_parameter(param.grad, clip_threshold=l2_norm_clip)
-            noise_parameter(param.grad, std=noise_multiplier * l2_norm_clip)
+            noise_parameter(param.grad, std=sigma)
 
 
-def noise_weights(weights: List[np.ndarray], sigma_d: float) -> List[np.ndarray]:
+def noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
     """Noise flower weights. Weights will be noised with individual drawings
     from the normal - i.e. if weights are an array with shape (1, 5), there
     will be 5 unique drawings from the normal.
 
     Args:
         weights (List[np.ndarray]): list of numpy arrays - weights
-        sigma_d (float): std of normal distribution
+        sigma (float): std of normal distribution
 
     Returns:
         List[np.ndarray]: noised copy of weights
     """
     weights = weights.copy()
     for i in range(len(weights)):
-        weights[i] += np.random.normal(scale=sigma_d, size=weights[i].shape)
+        weights[i] += np.random.normal(scale=sigma, size=weights[i].shape)
     return weights
 
 
