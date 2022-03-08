@@ -1,6 +1,8 @@
 # flower-dp
 
-A custom *(ε, δ)*-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass *ε* (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate *ε* from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a metric of privacy with real meaning.
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![nVIDIA](https://img.shields.io/badge/nVIDIA-%2376B900.svg?style=for-the-badge&logo=nVIDIA&logoColor=white)
+
+A custom *(ε, δ)*-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation.[^dpfl] All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass *ε* (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate *ε* from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a metric of privacy with real meaning.
 
 `flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
 Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
@@ -15,7 +17,7 @@ In our scenerio, the "datasets" would be the weights of the model. So, we add a 
 
 ## Getting Started
 
-Clone the repo at
+To install clone the repo and `cd` into the directory.
 
 ```bash
 git clone https://github.com/ckinateder/flower-dp.git
@@ -82,7 +84,7 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 ...
 ```
 
-(from `pytorch/simulation.py`)  
+(from [pytorch/simulation.py](pytorch/simulation.py))  
 
 ### Using a Different Model
 
@@ -112,3 +114,4 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 - [rdp_accountant](https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/analysis/rdp_accountant.py)
 
 [^dpsgd]: [DP-SGD explained](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3)
+[^dpfl]: [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
