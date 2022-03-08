@@ -10,6 +10,7 @@ Project based on the paper [Federated Learning with Differential Privacy: Algori
 - test cases
 - finish docs
 - ci/cd pipeline for test cases
+  
 ## Getting Started
 
 Clone the repo at

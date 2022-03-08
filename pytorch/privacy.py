@@ -1,10 +1,8 @@
 import logging
 import math
-from typing import Tuple, Generator, List
+from typing import Generator, List, Tuple
 
 import numpy as np
-
-import tensorflow_privacy as tfp  # for privacy calculations
 import torch
 
 logger = logging.getLogger(__name__)
