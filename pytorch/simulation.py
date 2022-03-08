@@ -13,8 +13,15 @@ import client
 import server
 
 
-def load_data(batch_size: int) -> Union[DataLoader, DataLoader]:
-    """Load CIFAR-10 (training and test set)."""
+def load_cifar10_data(batch_size: int) -> Union[DataLoader, DataLoader]:
+    """Load cifar10 data
+
+    Args:
+        batch_size (int): batch size to be applied to the dataloaders
+
+    Returns:
+        Union[DataLoader, DataLoader]: training dataloader, testing dataloader
+    """
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
@@ -51,15 +58,14 @@ class CIFAR10Net(nn.Module):
         return x
 
 
-# cuda device
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
 if __name__ == "__main__":
     # privacy guarantees for (epsilon, delta)-DP
     epsilon = 0.8  # lower is better
     delta = 1 / 2e5
     l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
+
+    # cuda device if available
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # client variables
     epochs = 1  # how many epochs to go through
@@ -74,7 +80,7 @@ if __name__ == "__main__":
     # K <= N
 
     # load data
-    trainloader, testloader = load_data(batch_size)
+    trainloader, testloader = load_cifar10_data(batch_size)
 
     # create server process
     server_process = Process(

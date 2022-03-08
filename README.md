@@ -1,16 +1,18 @@
 # flower-dp
 
-A custom (ǫ, δ)-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass epsilon (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate epsilon from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a set metric of privacy with real meaning.
+A custom $(\epsilon$, $\delta)$-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation. All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made around the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. One of the features that I wanted to ensure was the ability to pass $\epsilon$ (privacy budget) as a parameter, rather than an arbitrary "noise multiplier" and calculate $\epsilon$ from that. From a practical standpoint, it makes much more sense to be able to pre-emptively ensure a metric of privacy with real meaning.
 
 `flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
 Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
 
-## Todo
+## A Quick Overview of Differential Privacy for Federated Learning
 
-- test cases
-- finish docs
-- ci/cd pipeline for test cases
-  
+Imagine that you have two datasets $D$ and $D\prime$ that differ in only a single record (e.g., my data) and you interact with the data via a process or mechanism called M (this can be anything, more on this later). We can say that M is $\epsilon$-differentially private if for every possible output x, the probability that this output is observed never differs by more than exp($\epsilon$) between the two scenarios (with and without my data).[^dpsgd]
+
+In our scenerio, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter $C$ or `l2_norm_clip`.  
+
+$\delta$ is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of $\delta$ that are less than size of the dataset. For example, if the training dataset was $20000$ rows, $\delta \le 1/20000$.
+
 ## Getting Started
 
 Clone the repo at
@@ -20,7 +22,7 @@ git clone https://github.com/ckinateder/flower-dp.git
 cd flower-dp
 ```
 
-To install the packages, you can use virtualenv (for a lightweight setup) or Docker (recommended for continued use).
+To install the packages, you can use virtualenv (for a lighter setup) or Docker (recommended).
 
 ### virtualenv
 
@@ -47,25 +49,45 @@ Alternatively, the simulation can be run directly, without interactively enterin
 docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all --network host flower-dp:latest python3 pytorch/simulation.py
 ```
 
-## Usage
+### Running the Demo
 
-**Make sure you execute through the container described above.**  
-
-Trying the demo is as simple as running
+The demo is setup with a simple [CIFAR10](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) model. The demo can be executed with
 
 ```bash
 python3 pytorch/simulation.py
 ```
 
-Experiment with the following variables (in the main function) to learn how each affects the system.
+### Tweaking Parameters
 
 ```python
+...
+# privacy guarantees for (epsilon, delta)-DP
+epsilon = 0.8  # lower is better
+delta = 1 / 2e5
+l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
 
+# cuda device if available
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# client variables
+epochs = 1  # how many epochs to go through
+batch_size = 256  # batch size for training
+learning_rate = 0.001  # how quickly the model learns
+min_dataset_size = 1e5  # minimum training set size
+
+# server variables
+num_rounds = 3  # number of train/val rounds to go through
+min_available_clients = 3  # minimum number of clients to train/val - `N``
+clients_per_round = 3  # number of clients to be selected for each round - `K`
+...
 ```
 
-## Explanations
+(from `pytorch/simulation.py`)  
 
-Number of exposures is assumed to equal number of rounds.
+### Using a Different Model
+
+
+
 
 ## Links
 
@@ -88,3 +110,5 @@ Number of exposures is assumed to equal number of rounds.
 - [Measuring RDP](https://www.tensorflow.org/responsible_ai/privacy/guide/measure_privacy)
 - [Compute RDP Parameters](https://www.tensorflow.org/responsible_ai/privacy/tutorials/classification_privacy)
 - [rdp_accountant](https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/analysis/rdp_accountant.py)
+
+[^dpsgd]: [DP-SGD explained](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3)
