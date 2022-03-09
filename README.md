@@ -23,7 +23,7 @@ In our scenerio, the "datasets" would be the weights of the model. So, we add a 
 
 *δ* is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula, 
 
-<img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]&space;&plus;&space;\delta" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S] + \delta" />
+<img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]&space;%2b&space;\delta" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S] + \delta" />
 
 ## Getting Started
 
@@ -126,3 +126,5 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 [^dpsgd]: [DP-SGD explained](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3)
 [^dpfl]: [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
 [^dpfl2]: [Federated Learning and Differential Privacy: Software tools analysis, the Sherpa.ai FL framework and methodological guidelines for preserving data privacy](https://doi.org/10.48550/arXiv.2007.00914)
+
+<!-- Latex generated from https://editor.codecogs.com/>
