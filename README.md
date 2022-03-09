@@ -1,3 +1,22 @@
+<style TYPE="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS_HTML-full"></script>
+
 # flower-dp
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![nVIDIA](https://img.shields.io/badge/nVIDIA-%2376B900.svg?style=for-the-badge&logo=nVIDIA&logoColor=white)
@@ -9,11 +28,19 @@ Project based on the paper [Federated Learning with Differential Privacy: Algori
 
 ## A Quick Overview of Differential Privacy for Federated Learning
 
-Imagine that you have two datasets *D* and *D`* that differ in only a single record (e.g., my data) and you interact with the data via a process or mechanism called M (this can be anything, more on this later). We can say that M is *ε*-differentially private if for every possible output x, the probability that this output is observed never differs by more than *exp(ε)* between the two scenarios (with and without my data).[^dpsgd]
+Imagine that you have two neighboring datasets *x* and *y* and randomisation mechanism *M*. Since they're neighboring, *x* and *y* differ by one value. We can say that M is *ε*-differentially private if that, for every run of randomisation mechanism *M(x)*, it's just about equally likely to see the same output for every neighboring dataset *y*, and this probabilty is set by *ε*. [^dpfl2]
+
+Assume that
+
+<img src="https://render.githubusercontent.com/render/math?math=\large S\subseteq\Range(\mathcal M)">
+
+In other words, *M* preserves *ε*-DP if
+
+<img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]"><br>
 
 In our scenerio, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
-*δ* is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*.
+*δ* is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*.
 
 ## Getting Started
 
@@ -115,3 +142,4 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 
 [^dpsgd]: [DP-SGD explained](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3)
 [^dpfl]: [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
+[^dpfl2]: [Federated Learning and Differential Privacy: Software tools analysis, the Sherpa.ai FL framework and methodological guidelines for preserving data privacy](https://doi.org/10.48550/arXiv.2007.00914)
