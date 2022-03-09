@@ -30,7 +30,7 @@ Project based on the paper [Federated Learning with Differential Privacy: Algori
 
 ## A Quick Overview of Differential Privacy for Federated Learning
 
-Imagine that you have two neighboring datasets *x* and *y* and randomisation mechanism *M*. Since they're neighboring, *x* and *y* differ by one value. We can say that M is *ε*-differentially private if that, for every run of randomisation mechanism *M(x)*, it's just about equally likely to see the same output for every neighboring dataset *y*, and this probabilty is set by *ε*. [^dpfl2]
+Imagine that you have two neighboring datasets *x* and *y* and randomisation mechanism *M*. Since they're neighboring, *x* and *y* differ by one value. We can say that $M$ is *ε*-differentially private if that, for every run of randomisation mechanism *M(x)*, it's just about equally likely to see the same output for every neighboring dataset *y*, and this probabilty is set by *ε*. [^dpfl2]
 
 Assume that
 
