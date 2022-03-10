@@ -19,7 +19,7 @@ class PrivateServer(fl.server.strategy.FedAvg):
         *args,
         **kwargs
     ) -> None:
-        """Init function
+        """Constructor
 
         Args:
             epsilon (float): measures the strength of the privacy guarantee by
@@ -36,8 +36,6 @@ class PrivateServer(fl.server.strategy.FedAvg):
             min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
         """
         super().__init__(*args, **kwargs)
-        self.epsilon = epsilon
-        self.l2_norm_clip = l2_norm_clip
         self.sigma_d = privacy.calculate_sigma_d(
             epsilon=epsilon,
             delta=delta,
@@ -68,7 +66,10 @@ class PrivateServer(fl.server.strategy.FedAvg):
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
 
         # add noise
-        return privacy.noise_aggregated_weights(aggregated_weights, sigma=self.sigma_d)
+        noised_weights = privacy.noise_aggregated_weights(
+            aggregated_weights, sigma=self.sigma_d
+        )
+        return noised_weights
 
 
 def main(

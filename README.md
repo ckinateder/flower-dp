@@ -67,7 +67,7 @@ Alternatively, the simulation can be run directly, without interactively enterin
 docker run --rm -v `pwd`:`pwd` -w `pwd` --gpus all --network host flower-dp:latest python3 pytorch/simulation.py
 ```
 
-### Running the Demo
+## Usage
 
 The demo is setup with a simple [CIFAR10](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) model. The demo can be executed with
 
@@ -102,7 +102,63 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 
 (from [pytorch/simulation.py](pytorch/simulation.py))  
 
-### Using a Different Model
+### PrivateClient Walkthrough
+
+(from [pytorch/client.py](pytorch/client.py))
+
+### PrivateServer Walkthrough
+
+`PrivateServer` is pretty simple. It's a subclass of [`fl.server.strategy.FedAvg`](https://github.com/adap/flower/blob/main/src/py/flwr/server/strategy/fedavg.py), with modifications to the constructor and `aggregate_fit` function. The following arguments have been added:
+
+```python
+    def __init__(
+        self,
+        epsilon: float,
+        delta: float = 1 / 2e5,
+        l2_norm_clip: float = 1.5,
+        num_rounds: int = None,
+        min_dataset_size: int = 1e5,
+        *args,
+        **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.sigma_d = privacy.calculate_sigma_d(
+            epsilon=epsilon,
+            delta=delta,
+            l2_norm_clip=l2_norm_clip,
+            num_exposures=num_rounds,
+            num_rounds=num_rounds,
+            num_clients=self.min_fit_clients,
+            min_dataset_size=min_dataset_size,
+        )
+```
+
+These extra arguments (`epsilon`, `delta`, `l2_norm_clip`, `num_rounds`, `min_dataset_size`) are used to compute `self.sigma_d`.[^dpfl]
+
+The `aggregate_fit` function is expanded to include noising. The function's signature is the same as its superclass.
+
+```python
+    def aggregate_fit(
+        self,
+        rnd: int,
+        results: List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]],
+        failures: List[BaseException],
+    ) -> Optional[fl.common.Parameters]:
+        # call the superclass method
+        aggregated_weights = super().aggregate_fit(rnd, results, failures)
+
+        # add noise
+        noised_weights = privacy.noise_aggregated_weights(
+            aggregated_weights, sigma=self.sigma_d
+        )
+        return noised_weights
+```
+
+Naturally, this can be extended to any other strategy. Make sure to apply the noise as the last step in the `aggregate_fit` function.
+
+(from [pytorch/server.py](pytorch/server.py))
+
+### Model Handling
 
 Using a custom model, optimizer, and loss function with `flower-dp` is simple. When instantiating `client.PrivateClient`, pass the custom model as the `model` parameter, the optimizer you'd like to use as the `optimizer` parameter, and the loss function you'd like to use as the `loss_function` parameter. For example
 
