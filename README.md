@@ -17,7 +17,7 @@ Assume that
 
 In other words, *M* preserves *ε*-DP if
 
-<img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]" />
+<img src="https://latex.codecogs.com/svg.image?\bg{red}P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]" title="https://latex.codecogs.com/svg.image?\bg{red}P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]" />
 
 In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
@@ -142,11 +142,6 @@ class ModifiedClient(client.PrivateClient):
 - [flower.dev](https://flower.dev/)
 - [pytorch](https://pytorch.org/)
 - [tensorfow_privacy](https://www.tensorflow.org/responsible_ai/privacy/guide)
-
-### Papers Referenced
-
-- [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
-- [Understanding Gradient Clipping in Private SGD: A Geometric Perspective](https://proceedings.neurips.cc/paper/2020/file/9ecff5455677b38d19f49ce658ef0608-Paper.pdf)
 
 ### Material for Future Reference
 

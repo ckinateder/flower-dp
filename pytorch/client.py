@@ -18,7 +18,7 @@ class PrivateClient(fl.client.NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         model: nn.Module,
-        loss_function: nn.Module,
+        loss_function: type,
         device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
         delta: float = 1 / 2e5,
@@ -36,7 +36,7 @@ class PrivateClient(fl.client.NumPyClient):
             trainloader (DataLoader): pytorch dataloader with trainset
             testloader (DataLoader): pytorch dataloader with testset
             model (nn.Module): pytorch nn. This is an object.
-            loss_function (nn.Module): Loss function. This is a CLASS. Pass
+            loss_function (type): Loss function. This is a CLASS. Pass
                 without parentheses. For example, loss_function=nn.CrossEntropyLoss,
                 NOT loss_function=nn.CrossEntropyLoss().
             device (str, optional): device to compute on. Defaults to
@@ -151,7 +151,7 @@ def main(
     trainloader: DataLoader,
     testloader: DataLoader,
     model: nn.Module,
-    loss_function: nn.Module,
+    loss_function: type,
     device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
     delta: float = 1 / 2e5,
@@ -168,7 +168,7 @@ def main(
         trainloader (DataLoader): pytorch dataloader with trainset
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
-        loss_function (nn.Module): Loss function. This is a CLASS. Pass
+        loss_function (type): Loss function. This is a CLASS. Pass
             without parentheses. For example, loss_function=nn.CrossEntropyLoss,
             NOT loss_function=nn.CrossEntropyLoss().
         device (str, optional): device to compute on. Defaults to
