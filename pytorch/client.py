@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union
+from typing import Generator, Union
 
 import flwr as fl
 import torch
@@ -18,6 +18,7 @@ class PrivateClient(fl.client.NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         model: nn.Module,
+        loss_function: nn.Module,
         device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
         delta: float = 1 / 2e5,
@@ -35,6 +36,9 @@ class PrivateClient(fl.client.NumPyClient):
             trainloader (DataLoader): pytorch dataloader with trainset
             testloader (DataLoader): pytorch dataloader with testset
             model (nn.Module): pytorch nn. This is an object.
+            loss_function (nn.Module): Loss function. This is a CLASS. Pass
+                without parentheses. For example, loss_function=nn.CrossEntropyLoss,
+                NOT loss_function=nn.CrossEntropyLoss().
             device (str, optional): device to compute on. Defaults to
                 torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
             epsilon (float, optional): privacy budget. Defaults to 10.
@@ -72,14 +76,22 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
+        self.create_loss = loss_function
+
+    def create_optimizer(self) -> torch.optim.Optimizer:
+        """Create the optimizer used in training
+
+        Returns:
+            torch.optim.Optimizer: Torch optimizer
+        """
+        return torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
     def train(self) -> None:
-        """Train the network on the training set."""
-        criterion = torch.nn.CrossEntropyLoss()  # loss function
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+        """Train self.net on the training set."""
+        criterion = self.create_loss()
+        optimizer = self.create_optimizer()
 
-        # put in train mode
-        self.net.train()
+        self.net.train()  # put in train mode
 
         for _ in range(self.epochs):
             for images, labels in tqdm(self.trainloader, leave=False):
@@ -102,7 +114,7 @@ class PrivateClient(fl.client.NumPyClient):
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
         self.net.eval()  # put in test mode
-        criterion = torch.nn.CrossEntropyLoss()  # loss function
+        criterion = self.create_loss()
         correct, total, loss = 0, 0, 0.0
         with torch.no_grad():
             for data in self.testloader:
@@ -127,7 +139,6 @@ class PrivateClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         self.train()
-        # print(f"(ε = {epsilon:.2f}, δ = {delta:2e})")
         return self.get_parameters(), self.num_examples["trainset"], {}
 
     def evaluate(self, parameters, config):
@@ -140,6 +151,7 @@ def main(
     trainloader: DataLoader,
     testloader: DataLoader,
     model: nn.Module,
+    loss_function: nn.Module,
     device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
     delta: float = 1 / 2e5,
@@ -156,6 +168,9 @@ def main(
         trainloader (DataLoader): pytorch dataloader with trainset
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
+        loss_function (nn.Module): Loss function. This is a CLASS. Pass
+            without parentheses. For example, loss_function=nn.CrossEntropyLoss,
+            NOT loss_function=nn.CrossEntropyLoss().
         device (str, optional): device to compute on. Defaults to
             torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
         epsilon (float, optional): privacy budget. Defaults to 10.
@@ -176,6 +191,7 @@ def main(
         trainloader,
         testloader,
         model,
+        loss_function,
         device=device,
         batch_size=batch_size,
         epochs=epochs,

@@ -107,6 +107,7 @@ if __name__ == "__main__":
                     trainloader,
                     testloader,
                     CIFAR10Net(),
+                    torch.nn.CrossEntropyLoss,
                     DEVICE,
                     epsilon,
                     delta,

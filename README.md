@@ -19,9 +19,9 @@ In other words, *M* preserves *ε*-DP if
 
 <img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]" />
 
-In our scenerio, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
+In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
-*δ* is the probability of information being accidentially leaked. This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula, 
+*δ* is the probability of information being accidentially leaked (*0 ≤ δ ≤ 1*). This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula,
 
 <img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]&space;%2b&space;\delta" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S] + \delta" />
 
@@ -98,8 +98,42 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 
 ### Using a Different Model
 
+Using a custom model and loss function with `flower-dp` is simple. When instantiating `client.PrivateClient`, pass the custom model as the `model` parameter, and the loss function you'd like to use as the `loss_function` parameter. For example
 
+```python
+import client
+import torch
 
+class Net(torch.nn.Module):
+    ...
+    # custom model definition here
+
+loss = torch.nn.CrossEntropyLoss
+
+client = client.PrivateClient(
+    <training dataloader>,
+    <testing dataloader>,
+    model=Net(),
+    loss_function=loss,
+)
+
+```
+
+If you'd like to change the optimizer, you can create a subclass of `client.PrivateClient` and override the `create_optimizer` function. For example,
+
+```python
+import client
+import torch
+
+class ModifiedClient(client.PrivateClient):
+    def create_optimizer(self) -> torch.optim.Optimizer:
+        """Create the optimizer used in training
+
+        Returns:
+            torch.optim.Optimizer: Torch optimizer
+        """
+        return torch.optim.SGD(self.net.parameters(), lr=self.learning_rate)
+```
 
 ## Links
 
@@ -117,12 +151,8 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 ### Material for Future Reference
 
 - [AdaCliP: Adaptive Clipping for Private SGD](https://doi.org/10.48550/arXiv.1908.07643)
-- [Renyi Differential Privacy](https://arxiv.org/abs/1702.07476v3)
 - [Deep Learning with Differential Privacy](https://arxiv.org/abs/1607.00133)
-- [Measuring RDP](https://www.tensorflow.org/responsible_ai/privacy/guide/measure_privacy)
-- [Compute RDP Parameters](https://www.tensorflow.org/responsible_ai/privacy/tutorials/classification_privacy)
-- [rdp_accountant](https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/analysis/rdp_accountant.py)
-
+  
 [^dpsgd]: [DP-SGD explained](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3)
 [^dpfl]: [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222)
 [^dpfl2]: [Federated Learning and Differential Privacy: Software tools analysis, the Sherpa.ai FL framework and methodological guidelines for preserving data privacy](https://doi.org/10.48550/arXiv.2007.00914)
