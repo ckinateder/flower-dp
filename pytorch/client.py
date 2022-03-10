@@ -19,7 +19,7 @@ class PrivateClient(fl.client.NumPyClient):
         testloader: DataLoader,
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
-        loss_function: type,
+        loss_function: nn.Module,
         device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
         delta: float = 1 / 2e5,
@@ -36,9 +36,7 @@ class PrivateClient(fl.client.NumPyClient):
             testloader (DataLoader): pytorch dataloader with testset
             model (nn.Module): pytorch nn. This is an object.
             optimizer (torch.optim.Optimizer): Optimizer used in training.
-            loss_function (type): Loss function. This is a CLASS. Pass
-                without parentheses. For example, loss_function=nn.CrossEntropyLoss,
-                NOT loss_function=nn.CrossEntropyLoss().
+            loss_function (nn.Module): Loss function.
             device (str, optional): device to compute on. Defaults to
                 torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
             epsilon (float, optional): privacy budget. Defaults to 10.
@@ -72,12 +70,12 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
-        self.create_loss = loss_function
+        self.loss_function = loss_function
         self.optimizer = optimizer
 
     def train(self) -> None:
         """Train self.net on the training set."""
-        criterion = self.create_loss()
+        criterion = self.loss_function
         optimizer = self.optimizer
 
         self.net.train()  # put in train mode
@@ -103,7 +101,7 @@ class PrivateClient(fl.client.NumPyClient):
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
         self.net.eval()  # put in test mode
-        criterion = self.create_loss()
+        criterion = self.loss_function
         correct, total, loss = 0, 0, 0.0
         with torch.no_grad():
             for data in self.testloader:
@@ -141,7 +139,7 @@ def main(
     testloader: DataLoader,
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_function: type,
+    loss_function: nn.Module,
     device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
     delta: float = 1 / 2e5,
@@ -157,9 +155,7 @@ def main(
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
         optimizer (torch.optim.Optimizer): Optimizer used in training.
-        loss_function (type): Loss function. This is a CLASS. Pass
-            without parentheses. For example, loss_function=nn.CrossEntropyLoss,
-            NOT loss_function=nn.CrossEntropyLoss().
+        loss_function (nn.Module): Loss function.
         device (str, optional): device to compute on. Defaults to
             torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
         epsilon (float, optional): privacy budget. Defaults to 10.

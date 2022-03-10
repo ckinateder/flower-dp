@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # create net, optimizer, loss
     net = CIFAR10Net()
-    loss = torch.nn.CrossEntropyLoss
+    loss = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
     # create server process
