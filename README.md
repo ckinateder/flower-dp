@@ -21,7 +21,6 @@ In other words, *M* preserves *ε*-DP if
 <img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]#gh-light-mode-only">
 <img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]#gh-dark-mode-only">
 
-
 In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
 *δ* is the probability of information being accidentially leaked (*0 ≤ δ ≤ 1*). This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula,
@@ -102,7 +101,7 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 
 ### Using a Different Model
 
-Using a custom model and loss function with `flower-dp` is simple. When instantiating `client.PrivateClient`, pass the custom model as the `model` parameter, and the loss function you'd like to use as the `loss_function` parameter. For example
+Using a custom model, optimizer, and loss function with `flower-dp` is simple. When instantiating `client.PrivateClient`, pass the custom model as the `model` parameter, the optimizer you'd like to use as the `optimizer` parameter, and the loss function you'd like to use as the `loss_function` parameter. For example
 
 ```python
 import client
@@ -112,31 +111,18 @@ class Net(torch.nn.Module):
     ...
     # custom model definition here
 
+net = Net()
+optimizer = torch.optim.Adam(net.parameters())
 loss = torch.nn.CrossEntropyLoss
 
 client = client.PrivateClient(
     <training dataloader>,
     <testing dataloader>,
-    model=Net(),
+    model=net,
+    optimizer=optimizer,
     loss_function=loss,
 )
 
-```
-
-If you'd like to change the optimizer, you can create a subclass of `client.PrivateClient` and override the `create_optimizer` function. For example,
-
-```python
-import client
-import torch
-
-class ModifiedClient(client.PrivateClient):
-    def create_optimizer(self) -> torch.optim.Optimizer:
-        """Create the optimizer used in training
-
-        Returns:
-            torch.optim.Optimizer: Torch optimizer
-        """
-        return torch.optim.SGD(self.net.parameters(), lr=self.learning_rate)
 ```
 
 ## Links

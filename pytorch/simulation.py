@@ -1,5 +1,6 @@
 import os
 from multiprocessing import Process
+from pickletools import optimize
 from typing import List, Union
 
 import torch
@@ -82,6 +83,11 @@ if __name__ == "__main__":
     # load data
     trainloader, testloader = load_cifar10_data(batch_size)
 
+    # create net, optimizer, loss
+    net = CIFAR10Net()
+    loss = torch.nn.CrossEntropyLoss
+    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+
     # create server process
     server_process = Process(
         target=server.main,
@@ -106,17 +112,16 @@ if __name__ == "__main__":
                 args=(
                     trainloader,
                     testloader,
-                    CIFAR10Net(),
-                    torch.nn.CrossEntropyLoss,
+                    net,
+                    optimizer,
+                    loss,
                     DEVICE,
                     epsilon,
                     delta,
                     l2_norm_clip,
                     num_rounds,
                     min_dataset_size,
-                    batch_size,
                     epochs,
-                    learning_rate,
                 ),
             )
         )

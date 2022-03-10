@@ -18,6 +18,7 @@ class PrivateClient(fl.client.NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         model: nn.Module,
+        optimizer: torch.optim.Optimizer,
         loss_function: type,
         device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
@@ -25,9 +26,7 @@ class PrivateClient(fl.client.NumPyClient):
         l2_norm_clip: float = 1.5,
         num_rounds: int = 3,
         min_dataset_size: int = 1e5,
-        batch_size: int = 32,
         epochs: int = 1,
-        learning_rate: float = 0.001,
         *args,
         **kwargs,
     ) -> None:
@@ -36,6 +35,7 @@ class PrivateClient(fl.client.NumPyClient):
             trainloader (DataLoader): pytorch dataloader with trainset
             testloader (DataLoader): pytorch dataloader with testset
             model (nn.Module): pytorch nn. This is an object.
+            optimizer (torch.optim.Optimizer): Optimizer used in training.
             loss_function (type): Loss function. This is a CLASS. Pass
                 without parentheses. For example, loss_function=nn.CrossEntropyLoss,
                 NOT loss_function=nn.CrossEntropyLoss().
@@ -48,16 +48,13 @@ class PrivateClient(fl.client.NumPyClient):
             l2_norm_clip (float, optional): Euclidian norm clip for gradients. Defaults to 1.5.
             min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
             num_rounds (int, optional): num rounds - number of aggregation times. Defaults to 3.
-            batch_size (int, optional): Model batch size. Defaults to 32.
             epochs (int, optional): Number of train epochs. Defaults to 1.
-            learning_rate (float, optional): Learning rate of optimizer. Defaults to 0.001.
         """
         super().__init__(*args, **kwargs)
         self.trainloader = trainloader
         self.testloader = testloader
         self.device = device
         self.net = model.to(device)
-        self.batch_size = batch_size
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.epsilon = epsilon
@@ -68,7 +65,6 @@ class PrivateClient(fl.client.NumPyClient):
         }  # stored in a dictionary
         self.privacy_spent = None
         self.delta = delta
-        self.learning_rate = learning_rate
         self.sigma_u = privacy.calculate_sigma_u(
             epsilon=epsilon,
             delta=delta,
@@ -77,19 +73,12 @@ class PrivateClient(fl.client.NumPyClient):
             min_dataset_size=min_dataset_size,
         )
         self.create_loss = loss_function
-
-    def create_optimizer(self) -> torch.optim.Optimizer:
-        """Create the optimizer used in training
-
-        Returns:
-            torch.optim.Optimizer: Torch optimizer
-        """
-        return torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+        self.optimizer = optimizer
 
     def train(self) -> None:
         """Train self.net on the training set."""
         criterion = self.create_loss()
-        optimizer = self.create_optimizer()
+        optimizer = self.optimizer
 
         self.net.train()  # put in train mode
 
@@ -151,6 +140,7 @@ def main(
     trainloader: DataLoader,
     testloader: DataLoader,
     model: nn.Module,
+    optimizer: torch.optim.Optimizer,
     loss_function: type,
     device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
@@ -158,9 +148,7 @@ def main(
     l2_norm_clip: float = 1.5,
     num_rounds: int = 3,
     min_dataset_size: int = 1e5,
-    batch_size: int = 32,
     epochs: int = 1,
-    learning_rate: float = 0.001,
     host: str = "[::]:8080",
 ) -> None:
     """Create the client
@@ -168,6 +156,7 @@ def main(
         trainloader (DataLoader): pytorch dataloader with trainset
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
+        optimizer (torch.optim.Optimizer): Optimizer used in training.
         loss_function (type): Loss function. This is a CLASS. Pass
             without parentheses. For example, loss_function=nn.CrossEntropyLoss,
             NOT loss_function=nn.CrossEntropyLoss().
@@ -180,9 +169,7 @@ def main(
         l2_norm_clip (float, optional): Euclidian norm clip for gradients. Defaults to 1.5.
         min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
         num_rounds (int, optional): num rounds - number of aggregation times. Defaults to 3.
-        batch_size (int, optional): Model batch size. Defaults to 32.
         epochs (int, optional): Number of train epochs. Defaults to 1.
-        learning_rate (float, optional): Learning rate of optimizer. Defaults to 0.001.
         host (str, optional): hostname and port to connect to. Defaults to "[::]:8080".
     """
 
@@ -191,15 +178,14 @@ def main(
         trainloader,
         testloader,
         model,
+        optimizer,
         loss_function,
         device=device,
-        batch_size=batch_size,
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,
         epsilon=epsilon,
         num_rounds=num_rounds,
         delta=delta,
         min_dataset_size=min_dataset_size,
-        learning_rate=learning_rate,
     )
     fl.client.start_numpy_client(host, client=client)
