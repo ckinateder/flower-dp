@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 
 import flwr as fl
+from sympy import Q
 
 import privacy
 
@@ -52,7 +53,7 @@ class PrivateServer(fl.server.strategy.FedAvg):
         rnd: int,
         results: List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]],
         failures: List[BaseException],
-    ) -> Optional[fl.common.Weights]:
+    ) -> Optional[fl.common.Parameters]:
         """Call the superclass strategy aggregate_fit and then noise the weights.
 
         Args:
@@ -67,17 +68,7 @@ class PrivateServer(fl.server.strategy.FedAvg):
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
 
         # add noise
-        if aggregated_weights is not None:
-            noised_weights = list(aggregated_weights)  # make into list so assignable
-            for i in range(len(aggregated_weights)):
-                if type(aggregated_weights[i]) == fl.common.typing.Parameters:
-                    weights = fl.common.parameters_to_weights(aggregated_weights[i])
-                    weights = privacy.noise_weights(
-                        weights, self.sigma_d
-                    )  # noise weights
-                    noised_parameters = fl.common.weights_to_parameters(weights)
-                    noised_weights[i] = noised_parameters  # reassign parameters
-        return tuple(noised_weights)
+        return privacy.noise_aggregated_weights(aggregated_weights, sigma=self.sigma_d)
 
 
 def main(
