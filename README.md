@@ -13,17 +13,21 @@ Imagine that you have two neighboring datasets *x* and *y* and randomisation mec
 
 Assume that
 
-<img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;S\subseteq&space;\mathrm{Range}(\mathcal&space;M)" title="https://latex.codecogs.com/svg.image?\inline \large S\subseteq \mathrm{Range}(\mathcal M)" />
+<img src="https://render.githubusercontent.com/render/math?math=\large S\subseteq \mathrm{Range}(\mathcal M)#gh-light-mode-only">
+<img src="https://render.githubusercontent.com/render/math?math=\large S\subseteq \mathrm{Range}(\mathcal M)#gh-dark-mode-only">
 
 In other words, *M* preserves *ε*-DP if
 
-<img src="https://latex.codecogs.com/svg.image?\bg{red}P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]" title="https://latex.codecogs.com/svg.image?\bg{red}P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]" />
+<img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]#gh-light-mode-only">
+<img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]#gh-dark-mode-only">
+
 
 In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the Euclidian norm. This is controlled by the parameter *C* or `l2_norm_clip`.  
 
 *δ* is the probability of information being accidentially leaked (*0 ≤ δ ≤ 1*). This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula,
 
-<img src="https://latex.codecogs.com/svg.image?\inline&space;\large&space;P[\mathcal&space;M&space;(x)&space;\in&space;S]&space;\le&space;\exp(\epsilon)&space;P[\mathcal&space;M&space;(y)&space;\in&space;S]&space;%2b&space;\delta" title="https://latex.codecogs.com/svg.image?\inline \large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S] + \delta" />
+<img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S %2b \delta]#gh-light-mode-only">
+<img src="https://render.githubusercontent.com/render/math?math=\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S %2b \delta]#gh-dark-mode-only">
 
 ## Getting Started
 
