@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
 import flwr as fl
-from sympy import Q
 
 import privacy
 
