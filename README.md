@@ -23,7 +23,7 @@ In other words, *M* preserves *ε*-DP if
 <div align="center"><img style="background: white;" src="https://render.githubusercontent.com/render/math?math={\color{white}\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]}#gh-dark-mode-only"></div>
 <div align="center"><img style="background: white;" src="https://render.githubusercontent.com/render/math?math={\color{black}\large P[\mathcal M (x) \in S] \le \exp(\epsilon) P[\mathcal M (y) \in S]}#gh-light-mode-only"></div>
 
-In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the [Euclidian (*L<sup>2</sup>*) norm](https://mathworld.wolfram.com/L2-Norm.html). This is controlled by the parameter *C* or `l2_norm_clip`.  
+In our scenario, the "datasets" would be the weights of the model. So, we add a certain amount of noise to each gradient during gradient descent to ensure that specific users data cannot be extracted but the model can still learn. Because we're adding to the gradients, we must bound them. We do this by clipping using the [Euclidean (*L<sup>2</sup>*) norm](https://mathworld.wolfram.com/L2-Norm.html). This is controlled by the parameter *C* or `l2_norm_clip`.  
 
 *δ* is the probability of information being accidentially leaked (*0 ≤ δ ≤ 1*). This value is proportional to the size of the dataset. Typically we'd like to see values of *δ* that are less than the inverse of the size of the dataset. For example, if the training dataset was *20000* rows, *δ ≤ 1 / 20000*. To include this in the general formula,
 
