@@ -61,8 +61,9 @@ class PrivateClient(fl.client.NumPyClient):
             "testset": len(testloader.dataset),
             "total": len(trainloader.dataset) + len(testloader.dataset),
         }  # stored in a dictionary
-        self.privacy_spent = None
         self.delta = delta
+        self.loss_function = loss_function
+        self.optimizer = optimizer
         self.sigma_u = privacy.calculate_sigma_u(
             epsilon=epsilon,
             delta=delta,
@@ -70,8 +71,6 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
-        self.loss_function = loss_function
-        self.optimizer = optimizer
 
     def train(self) -> None:
         """Train self.net on the training set."""

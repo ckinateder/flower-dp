@@ -166,7 +166,7 @@ def noise_and_clip_parameters(
             noise_parameter(param.grad, std=sigma)
 
 
-def noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
+def _noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
     """Noise flower weights. Weights will be noised with individual drawings
     from the normal - i.e. if weights are an array with shape (1, 5), there
     will be 5 unique drawings from the normal.
@@ -203,7 +203,7 @@ def noise_aggregated_weights(
         for i in range(len(aggregated_weights)):
             if type(aggregated_weights[i]) == fl.common.typing.Parameters:
                 weights = fl.common.parameters_to_weights(aggregated_weights[i])
-                weights = noise_weights(weights, sigma)
+                weights = _noise_weights(weights, sigma)
                 noised_weights[i] = weights  # reassign parameters
     return tuple(noised_weights)
 
