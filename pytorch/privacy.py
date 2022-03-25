@@ -1,10 +1,11 @@
 import logging
 import math
-from typing import Generator, List, Tuple, Optional
+from typing import Generator, List, Optional, Tuple
 
+import flwr as fl
 import numpy as np
 import torch
-import flwr as fl
+from flwr.common.typing import Parameters, Scalar, Weights
 
 logger = logging.getLogger(__name__)
 
@@ -166,15 +167,15 @@ def noise_and_clip_parameters(
             noise_parameter(param.grad, std=sigma)
 
 
-def noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
+def noise_weights(weights: Weights, sigma: float) -> Weights:
     """Noise flower weights. Weights will be noised with individual drawings
     from the normal - i.e. if weights are an array with shape (1, 5), there
     will be 5 unique drawings from the normal.
     Args:
-        weights (List[np.ndarray]): list of numpy arrays - weights
+        weights (Weights): list of numpy arrays - weights
         sigma (float): std of normal distribution
     Returns:
-        List[np.ndarray]: noised copy of weights
+        Weights: noised copy of weights
     """
     weights = weights.copy()
     for i in range(len(weights)):
