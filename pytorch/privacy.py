@@ -183,6 +183,15 @@ def noise_weights(weights: Weights, sigma: float) -> Weights:
     return weights
 
 
+def server_side_noise(parameters: Parameters, sigma: float) -> Optional[Parameters]:
+    noised_parameters = None
+    if parameters is not None:
+        weights = fl.common.parameters_to_weights(parameters)
+        weights = noise_weights(weights, sigma=sigma)  # noise weights
+        noised_parameters = fl.common.weights_to_parameters(weights)
+    return noised_parameters
+
+
 if __name__ == "__main__":
     import doctest
 

@@ -62,15 +62,12 @@ class PrivateServer(fl.server.strategy.FedAvg):
             Tuple[Optional[Parameters], Dict[str, Scalar]]: computed weights
         """
         # call the superclass method
-        aggregated_weights_response = super().aggregate_fit(rnd, results, failures)
-        aggregated_weights = aggregated_weights_response[0]
+        response = super().aggregate_fit(rnd, results, failures)
+        aggregated_params = response[0]
+
         # add noise
-        noised_parameters = None
-        if aggregated_weights is not None:
-            weights = fl.common.parameters_to_weights(aggregated_weights)
-            weights = privacy.noise_weights(weights, self.sigma_d)  # noise weights
-            noised_parameters = fl.common.weights_to_parameters(weights)
-        return noised_parameters, aggregated_weights_response[1]
+        noised_parameters = privacy.server_side_noise(aggregated_params, self.sigma_d)
+        return noised_parameters, response[1]
 
 
 def main(
