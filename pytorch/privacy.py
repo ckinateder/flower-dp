@@ -173,7 +173,7 @@ def noise_weights(weights: Weights, sigma: float) -> Weights:
     will be 5 unique drawings from the normal.
     Args:
         weights (Weights): list of numpy arrays - weights
-        sigma (float): std of normal distribution
+        sigma (float): std of normal distribution of noise to be added
     Returns:
         Weights: noised copy of weights
     """
@@ -184,6 +184,15 @@ def noise_weights(weights: Weights, sigma: float) -> Weights:
 
 
 def server_side_noise(parameters: Parameters, sigma: float) -> Optional[Parameters]:
+    """Apply noise_weights to flower parameters
+
+    Args:
+        parameters (Parameters): server params
+        sigma (float): std of normal distribution of noise to be added
+
+    Returns:
+        Optional[Parameters]: noised weights
+    """
     noised_parameters = None
     if parameters is not None:
         weights = fl.common.parameters_to_weights(parameters)

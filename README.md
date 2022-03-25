@@ -136,15 +136,14 @@ The `aggregate_fit` function is expanded to include noising. The function's sign
         rnd: int,
         results: List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]],
         failures: List[BaseException],
-    ) -> Optional[fl.common.Parameters]:
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         # call the superclass method
-        aggregated_weights = super().aggregate_fit(rnd, results, failures)
+        response = super().aggregate_fit(rnd, results, failures)
+        aggregated_params = response[0]
 
         # add noise
-        noised_weights = privacy.noise_aggregated_weights(
-            aggregated_weights, sigma=self.sigma_d
-        )
-        return noised_weights
+        noised_parameters = privacy.server_side_noise(aggregated_params, self.sigma_d)
+        return noised_parameters, response[1]
 ```
 
 Naturally, this can be extended to any other strategy. Make sure to apply the noise as the last step in the `aggregate_fit` function.
@@ -165,13 +164,13 @@ The constructor is pretty self explanatory. It consists of variable assignment, 
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         loss_function: nn.Module,
-        device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
         delta: float = 1 / 2e5,
         l2_norm_clip: float = 1.5,
         num_rounds: int = 3,
         min_dataset_size: int = 1e5,
         epochs: int = 1,
+        device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         *args,
         **kwargs,
     ) -> None:
