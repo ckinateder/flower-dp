@@ -74,7 +74,7 @@ def main(
     epsilon: float = 10,
     delta: float = 1 / 2e5,
     l2_norm_clip: float = 1.5,
-    num_rounds: int = None,
+    num_rounds: int = 3,
     min_available_clients: int = 3,
     clients_per_round: int = 3,
     min_dataset_size: int = 1e5,
@@ -89,8 +89,7 @@ def main(
             inverse of the size of the training dataset. Defaults to 1 / 2e5.
         l2_norm_clip (int, optional): l2_norm_clip - clipping threshold for gradients. Defaults to 1.5.
         num_rounds (int, optional): num rounds - number of aggregation times. Must be
-            greater than or equal to L. Defaults to None, which is
-            then set to value of L if given, or 3.
+            greater than or equal to L. Defaults to 3.
         min_available_clients (int, optional): number of clients. Defaults to 3.
         clients_per_round (int, optional):  number of clients to train per round. Defaults to 3.
         min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
