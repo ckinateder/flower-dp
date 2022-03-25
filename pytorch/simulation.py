@@ -16,10 +16,8 @@ import server
 
 def load_cifar10_data(batch_size: int) -> Union[DataLoader, DataLoader]:
     """Load cifar10 data
-
     Args:
         batch_size (int): batch size to be applied to the dataloaders
-
     Returns:
         Union[DataLoader, DataLoader]: training dataloader, testing dataloader
     """
@@ -115,13 +113,13 @@ if __name__ == "__main__":
                     net,
                     optimizer,
                     loss,
-                    DEVICE,
                     epsilon,
                     delta,
                     l2_norm_clip,
                     num_rounds,
                     min_dataset_size,
                     epochs,
+                    DEVICE,
                 ),
             )
         )

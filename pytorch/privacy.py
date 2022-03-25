@@ -166,15 +166,13 @@ def noise_and_clip_parameters(
             noise_parameter(param.grad, std=sigma)
 
 
-def _noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
+def noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
     """Noise flower weights. Weights will be noised with individual drawings
     from the normal - i.e. if weights are an array with shape (1, 5), there
     will be 5 unique drawings from the normal.
-
     Args:
         weights (List[np.ndarray]): list of numpy arrays - weights
         sigma (float): std of normal distribution
-
     Returns:
         List[np.ndarray]: noised copy of weights
     """
@@ -182,30 +180,6 @@ def _noise_weights(weights: List[np.ndarray], sigma: float) -> List[np.ndarray]:
     for i in range(len(weights)):
         weights[i] += np.random.normal(scale=sigma, size=weights[i].shape)
     return weights
-
-
-def noise_aggregated_weights(
-    aggregated_weights: Optional[fl.common.Parameters], sigma: float
-) -> Optional[fl.common.Parameters]:
-    """Extension of noise_weights to be used with aggregate params on the server
-
-    Args:
-        aggregated_weights (Optional[fl.common.Parameters]): weights
-        sigma (float): std of normal distribution
-
-    Returns:
-        Optional[fl.common.Parameters]: noised weights or None if None given
-    """
-
-    # add noise
-    if aggregated_weights is not None:
-        noised_weights = list(aggregated_weights)  # make into list so assignable
-        for i in range(len(aggregated_weights)):
-            if type(aggregated_weights[i]) == fl.common.typing.Parameters:
-                weights = fl.common.parameters_to_weights(aggregated_weights[i])
-                weights = _noise_weights(weights, sigma)
-                noised_weights[i] = weights  # reassign parameters
-    return tuple(noised_weights)
 
 
 if __name__ == "__main__":

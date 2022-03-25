@@ -81,11 +81,8 @@ python3 pytorch/simulation.py
 ...
 # privacy guarantees for (epsilon, delta)-DP
 epsilon = 0.8  # lower is better
-delta = 1 / 2e5
-l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
-
-# cuda device if available
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+delta = 1 / 2e5 # probability of exceeding the privacy budget
+l2_norm_clip = 1.5  # max euclidean norm of gradients
 
 # client variables
 epochs = 1  # how many epochs to go through
@@ -100,9 +97,9 @@ clients_per_round = 3  # number of clients to be selected for each round - `K`
 ...
 ```
 
-(from [pytorch/simulation.py](pytorch/simulation.py))  
+### PyTorch
 
-### PrivateServer Walkthrough
+#### PrivateServer Walkthrough
 
 `PrivateServer` is pretty simple. It's a subclass of [`fl.server.strategy.FedAvg`](https://github.com/adap/flower/blob/main/src/py/flwr/server/strategy/fedavg.py), with modifications to the constructor and `aggregate_fit` function. The following arguments have been added:
 
@@ -154,7 +151,7 @@ Naturally, this can be extended to any other strategy. Make sure to apply the no
 
 (from [pytorch/server.py](pytorch/server.py))
 
-### PrivateClient Walkthrough
+#### PrivateClient Walkthrough
 
 This client is loosely based off of the [PyTorch Quickstart](https://flower.dev/docs/quickstart_pytorch.html) from [flower's docs](https://flower.dev/docs/index.html).
 
@@ -261,7 +258,7 @@ Lastly, the `get_parameters`, `set_parameters`, `fit`, and `evaluate` functions 
 
 (from [pytorch/client.py](pytorch/client.py))
 
-### Model Handling
+#### Model Handling
 
 Using a custom model, optimizer, and loss function with `flower-dp` is simple. When instantiating `client.PrivateClient`, pass the custom model as the `model` parameter, the optimizer you'd like to use as the `optimizer` parameter, and the loss function you'd like to use as the `loss_function` parameter. For example
 
@@ -288,7 +285,7 @@ client = client.PrivateClient(
 )
 ```
 
-### Privacy Endpoints
+#### Privacy Endpoints
 
 The [privacy](pytorch/privacy.py) class contains the most important privacy calculations. The equations used are taken directly from [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
 
@@ -302,7 +299,6 @@ The [privacy](pytorch/privacy.py) class contains the most important privacy calc
 
 - `noise_and_clip_parameters(parameters: Generator, l2_norm_clip: float, sigma: float) -> None`
 - `noise_aggregated_weights(aggregated_weights: Optional[fl.common.Parameters], sigma: float) -> Optional[fl.common.Parameters]`
-
 
 ## Links
 

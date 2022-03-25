@@ -20,13 +20,13 @@ class PrivateClient(fl.client.NumPyClient):
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         loss_function: nn.Module,
-        device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         epsilon: float = 10,
         delta: float = 1 / 2e5,
         l2_norm_clip: float = 1.5,
         num_rounds: int = 3,
         min_dataset_size: int = 1e5,
         epochs: int = 1,
+        device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         *args,
         **kwargs,
     ) -> None:
@@ -61,9 +61,8 @@ class PrivateClient(fl.client.NumPyClient):
             "testset": len(testloader.dataset),
             "total": len(trainloader.dataset) + len(testloader.dataset),
         }  # stored in a dictionary
+        self.privacy_spent = None
         self.delta = delta
-        self.loss_function = loss_function
-        self.optimizer = optimizer
         self.sigma_u = privacy.calculate_sigma_u(
             epsilon=epsilon,
             delta=delta,
@@ -71,6 +70,8 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
+        self.loss_function = loss_function
+        self.optimizer = optimizer
 
     def train(self) -> None:
         """Train self.net on the training set."""
@@ -139,13 +140,13 @@ def main(
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
     loss_function: nn.Module,
-    device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     epsilon: float = 10,
     delta: float = 1 / 2e5,
     l2_norm_clip: float = 1.5,
     num_rounds: int = 3,
     min_dataset_size: int = 1e5,
     epochs: int = 1,
+    device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     host: str = "[::]:8080",
 ) -> None:
     """Create the client

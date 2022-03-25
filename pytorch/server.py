@@ -18,8 +18,7 @@ class PrivateServer(fl.server.strategy.FedAvg):
         *args,
         **kwargs
     ) -> None:
-        """Constructor
-
+        """Init function
         Args:
             epsilon (float): measures the strength of the privacy guarantee by
                 bounding how much the probability of a particular model output
@@ -35,6 +34,8 @@ class PrivateServer(fl.server.strategy.FedAvg):
             min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
         """
         super().__init__(*args, **kwargs)
+        self.epsilon = epsilon
+        self.l2_norm_clip = l2_norm_clip
         self.sigma_d = privacy.calculate_sigma_d(
             epsilon=epsilon,
             delta=delta,
@@ -50,25 +51,30 @@ class PrivateServer(fl.server.strategy.FedAvg):
         rnd: int,
         results: List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]],
         failures: List[BaseException],
-    ) -> Optional[fl.common.Parameters]:
+    ) -> Optional[fl.common.Weights]:
         """Call the superclass strategy aggregate_fit and then noise the weights.
-
         Args:
             rnd (int): current round number
             results (List[Tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]]): results
             failures (List[BaseException]): failure list
-
         Returns:
             Optional[fl.common.Weights]: computed weights
         """
         # call the superclass method
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
-
+        print(aggregated_weights)
         # add noise
-        noised_weights = privacy.noise_aggregated_weights(
-            aggregated_weights, sigma=self.sigma_d
-        )
-        return noised_weights
+        if aggregated_weights is not None:
+            noised_weights = list(aggregated_weights)  # make into list so assignable
+            for i in range(len(aggregated_weights)):
+                if type(aggregated_weights[i]) == fl.common.typing.Parameters:
+                    weights = fl.common.parameters_to_weights(aggregated_weights[i])
+                    weights = privacy.noise_weights(
+                        weights, self.sigma_d
+                    )  # noise weights
+                    noised_parameters = fl.common.weights_to_parameters(weights)
+                    noised_weights[i] = noised_parameters  # reassign parameters
+        return tuple(noised_weights)
 
 
 def main(
