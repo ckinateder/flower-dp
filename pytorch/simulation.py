@@ -77,6 +77,7 @@ if __name__ == "__main__":
     min_available_clients = 3  # minimum number of clients to train/val - `N``
     clients_per_round = 3  # number of clients to be selected for each round - `K`
     # K <= N
+    host = "[::]:8080"
 
     # load data
     trainloader, testloader = load_cifar10_data(batch_size)
@@ -97,6 +98,7 @@ if __name__ == "__main__":
             min_available_clients,
             clients_per_round,
             min_dataset_size,
+            host,
         ),
     )
     server_process.start()
@@ -120,6 +122,7 @@ if __name__ == "__main__":
                     min_dataset_size,
                     epochs,
                     DEVICE,
+                    host,
                 ),
             )
         )
