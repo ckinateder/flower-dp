@@ -73,6 +73,23 @@ class PrivateClient(fl.client.NumPyClient):
         self.loss_function = loss_function
         self.optimizer = optimizer
 
+    def train_step(self, x, y):
+        # send to device and compute loss
+        images, labels = x.to(self.device), y.to(self.device)
+        loss = self.loss_function(self.net(images), labels)
+
+        # compute and apply gradients
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        # apply noise
+        privacy.noise_and_clip_parameters(
+            self.net.parameters(),
+            l2_norm_clip=self.l2_norm_clip,
+            sigma=self.sigma_u,
+        )
+
     def train(self) -> None:
         """Train self.net on the training set."""
         criterion = self.loss_function
@@ -82,21 +99,7 @@ class PrivateClient(fl.client.NumPyClient):
 
         for _ in range(self.epochs):
             for images, labels in tqdm(self.trainloader, leave=False):
-                # send to device and compute loss
-                images, labels = images.to(self.device), labels.to(self.device)
-                loss = criterion(self.net(images), labels)
-
-                # compute and apply gradients
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                # apply noise
-                privacy.noise_and_clip_parameters(
-                    self.net.parameters(),
-                    l2_norm_clip=self.l2_norm_clip,
-                    sigma=self.sigma_u,
-                )
+                self.train_step(images, labels)
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
