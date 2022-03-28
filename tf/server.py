@@ -103,7 +103,9 @@ def main(
         num_rounds=num_rounds,
         min_dataset_size=min_dataset_size,
     )
-    fl.server.start_server(config={"num_rounds": num_rounds}, strategy=strategy)
+    fl.server.start_server(
+        "[::]:8080", config={"num_rounds": num_rounds}, strategy=strategy
+    )
 
 
 if __name__ == "__main__":

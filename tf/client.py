@@ -5,6 +5,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import privacy
 from typing import Union
+from tqdm import tqdm
 
 
 class PrivateClient(fl.client.NumPyClient):
@@ -44,26 +45,26 @@ class PrivateClient(fl.client.NumPyClient):
             epochs (int, optional): Number of train epochs. Defaults to 1.
         """
         super().__init__(*args, **kwargs)
+
+        self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+        self.loss_function = keras.losses.SparseCategoricalCrossentropy()
         model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
-        model.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
+        model.compile(self.optimizer, self.loss_function, metrics=["accuracy"])
+
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        self.trainset = trainset
-        self.testset = testset
+        self.trainset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        self.testset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+        self.trainset = self.trainset.shuffle(buffer_size=1024).batch(256)
+        self.testset = self.trainset.shuffle(buffer_size=1024)
+
         self.net = model
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.epsilon = epsilon
-        """
         self.num_examples = {
-            "trainset": len(trainset.dataset),
-            "testset": len(testset.dataset),
-            "total": len(trainset.dataset) + len(testset.dataset),
-        }  # stored in a dictionary
-        """
-        self.num_examples = {
-            "trainset": len(x_train),
-            "testset": len(x_test),
-            "total": len(x_train) + len(x_test),
+            "trainset": len(self.trainset),
+            "testset": len(self.testset),
+            "total": len(self.trainset) + len(self.testset),
         }  # stored in a dictionary
         self.privacy_spent = None
         self.delta = delta
@@ -74,18 +75,29 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
-        self.loss_function = loss_function
-        self.optimizer = optimizer
+
+    @tf.function
+    def train_step(self, x, y):
+        with tf.GradientTape() as tape:
+            logits = self.net(x, training=True)
+            loss_value = self.loss_function(y, logits)
+        grads = tape.gradient(loss_value, self.net.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.net.trainable_weights))
+        return loss_value
 
     def train(self) -> None:
         """Train self.net on the training set."""
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        self.net.fit(x_train, y_train, epochs=1, batch_size=32, steps_per_epoch=3)
+        for epoch in range(self.epochs):
+            for _, (x_batch_train, y_batch_train) in tqdm(
+                enumerate(self.trainset),
+                total=self.num_examples["trainset"],
+                leave=False,
+            ):
+                self.train_step(x_batch_train, y_batch_train)
 
     def test(self) -> Union[float, float]:
         """Validate the network on the entire test set."""
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        loss, accuracy = self.net.evaluate(x_test, y_test)
+        loss, accuracy = self.net.evaluate(self.testset)
         return loss, accuracy
 
     def get_parameters(self):

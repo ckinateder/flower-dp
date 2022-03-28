@@ -73,7 +73,7 @@ class PrivateClient(fl.client.NumPyClient):
         self.loss_function = loss_function
         self.optimizer = optimizer
 
-    def train_step(self, x, y):
+    def train_step(self, x, y) -> None:
         # send to device and compute loss
         images, labels = x.to(self.device), y.to(self.device)
         loss = self.loss_function(self.net(images), labels)
@@ -92,9 +92,6 @@ class PrivateClient(fl.client.NumPyClient):
 
     def train(self) -> None:
         """Train self.net on the training set."""
-        criterion = self.loss_function
-        optimizer = self.optimizer
-
         self.net.train()  # put in train mode
 
         for _ in range(self.epochs):
