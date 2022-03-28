@@ -46,17 +46,8 @@ class PrivateClient(fl.client.NumPyClient):
         """
         super().__init__(*args, **kwargs)
 
-        self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-        self.loss_function = keras.losses.SparseCategoricalCrossentropy()
-        model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
-        model.compile(self.optimizer, self.loss_function, metrics=["accuracy"])
-
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        self.trainset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-        self.testset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
-        self.trainset = self.trainset.shuffle(buffer_size=1024).batch(256)
-        self.testset = self.trainset.shuffle(buffer_size=1024)
-
+        self.trainset = trainset
+        self.testset = testset
         self.net = model
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
@@ -75,6 +66,8 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
+        self.optimizer = optimizer
+        self.loss_function = loss_function
 
     @tf.function
     def train_step(self, x, y):
@@ -117,6 +110,70 @@ class PrivateClient(fl.client.NumPyClient):
         return float(loss), self.num_examples["testset"], {"accuracy": float(accuracy)}
 
 
-fl.client.start_numpy_client(
-    "[::]:8080", client=PrivateClient(None, None, None, None, None)
-)
+def main(
+    trainset: tf.data.Dataset,
+    testset: tf.data.Dataset,
+    model: keras.Model,
+    optimizer: keras.optimizers.Optimizer,
+    loss_function: keras.losses.Loss,
+    epsilon: float = 10,
+    delta: float = 1 / 2e5,
+    l2_norm_clip: float = 1.5,
+    num_rounds: int = 3,
+    min_dataset_size: int = 1e5,
+    epochs: int = 1,
+    host: str = "[::]:8080",
+) -> None:
+    """Create the client
+
+    Args:
+        trainset (tf.data.Dataset): tf dataset for training
+        testset (tf.data.Dataset): tf dataset for testing
+        model (keras.Model): model
+        optimizer (keras.optimizers.Optimizer): optmizer
+        loss_function (keras.losses.Loss): loss function
+        epsilon (float, optional): privacy budget. Defaults to 10.
+        delta (float, optional): Bounds the probability of the privacy guarantee
+            not holding. A rule of thumb is to set it to be less than the
+            inverse of the size of the training dataset. Defaults to 1 / 2e5.
+        l2_norm_clip (float, optional): Euclidian norm clip for gradients. Defaults to 1.5.
+        min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
+        num_rounds (int, optional): num rounds - number of aggregation times. Defaults to 3.
+        epochs (int, optional): Number of train epochs. Defaults to 1.
+    """
+
+    optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+    loss_function = keras.losses.SparseCategoricalCrossentropy()
+    model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
+    model.compile(optimizer, loss_function, metrics=["accuracy"])
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    trainset = (
+        tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        .shuffle(buffer_size=1024)
+        .batch(256)
+    )
+    testset = (
+        tf.data.Dataset.from_tensor_slices((x_test, y_test))
+        .shuffle(buffer_size=1024)
+        .batch(256)
+    )
+
+    # Start Flower client
+    client = PrivateClient(
+        trainset,
+        testset,
+        model,
+        optimizer,
+        loss_function,
+        epochs=epochs,
+        l2_norm_clip=l2_norm_clip,
+        epsilon=epsilon,
+        num_rounds=num_rounds,
+        delta=delta,
+        min_dataset_size=min_dataset_size,
+    )
+    fl.client.start_numpy_client(host, client=client)
+
+
+if __name__ == "__main__":
+    main(None, None, None, None, None)
