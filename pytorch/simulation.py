@@ -121,8 +121,8 @@ if __name__ == "__main__":
                     num_rounds,
                     min_dataset_size,
                     epochs,
-                    DEVICE,
                     host,
+                    DEVICE,
                 ),
             )
         )

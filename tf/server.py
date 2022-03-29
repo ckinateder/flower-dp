@@ -78,6 +78,7 @@ def main(
     min_available_clients: int = 2,
     clients_per_round: int = 2,
     min_dataset_size: int = 1e5,
+    host: str = "[::]:8080",
 ) -> None:
     """Run the server
     Args:
@@ -93,6 +94,7 @@ def main(
         min_available_clients (int, optional): number of clients. Defaults to 3.
         clients_per_round (int, optional):  number of clients to train per round. Defaults to 3.
         min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
+        host (str, optional): hostname and port to connect to. Defaults to "[::]:8080".
     """
     strategy = PrivateServer(
         min_available_clients=min_available_clients,
@@ -103,9 +105,7 @@ def main(
         num_rounds=num_rounds,
         min_dataset_size=min_dataset_size,
     )
-    fl.server.start_server(
-        "[::]:8080", config={"num_rounds": num_rounds}, strategy=strategy
-    )
+    fl.server.start_server(host, config={"num_rounds": num_rounds}, strategy=strategy)
 
 
 if __name__ == "__main__":

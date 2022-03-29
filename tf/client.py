@@ -2,7 +2,6 @@ import flwr as fl
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
 import privacy
 from typing import Union
 from tqdm import tqdm
@@ -15,15 +14,13 @@ class PrivateClient(fl.client.NumPyClient):
         self,
         trainset: tf.data.Dataset,
         testset: tf.data.Dataset,
-        model: keras.Model,
-        optimizer: keras.optimizers.Optimizer,
-        loss_function: keras.losses.Loss,
         epsilon: float = 10,
         delta: float = 1 / 2e5,
         l2_norm_clip: float = 1.5,
         num_rounds: int = 3,
         min_dataset_size: int = 1e5,
         epochs: int = 1,
+        batch_size: int = 256,
         *args,
         **kwargs,
     ) -> None:
@@ -46,9 +43,18 @@ class PrivateClient(fl.client.NumPyClient):
         """
         super().__init__(*args, **kwargs)
 
+        trainset = (
+            tf.data.Dataset.from_tensor_slices(trainset)
+            .shuffle(buffer_size=1024)
+            .batch(batch_size)
+        )
+        testset = (
+            tf.data.Dataset.from_tensor_slices(testset)
+            .shuffle(buffer_size=1024)
+            .batch(batch_size)
+        )
         self.trainset = trainset
         self.testset = testset
-        self.net = model
         self.epochs = epochs
         self.l2_norm_clip = l2_norm_clip
         self.epsilon = epsilon
@@ -66,8 +72,21 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
-        self.optimizer = optimizer
-        self.loss_function = loss_function
+        ###
+        self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+        self.loss_function = keras.losses.SparseCategoricalCrossentropy()
+        self.net = tf.keras.applications.MobileNetV2(
+            trainset.element_spec[0].shape[1:],
+            classes=10,
+            weights=None,
+        )
+        self.net.compile(self.optimizer, self.loss_function, metrics=["accuracy"])
+        ###
+
+    def clip_and_noise_gradients(self, gradients: list) -> list:
+        clipped_grads = privacy.clip_gradients(gradients, self.l2_norm_clip)
+        noised_grads = privacy.noise_gradients(clipped_grads, self.sigma_u)
+        return noised_grads
 
     @tf.function
     def train_step(self, x, y):
@@ -75,7 +94,8 @@ class PrivateClient(fl.client.NumPyClient):
             logits = self.net(x, training=True)
             loss_value = self.loss_function(y, logits)
         grads = tape.gradient(loss_value, self.net.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.net.trainable_weights))
+        grads_prime = self.clip_and_noise_gradients(grads)
+        self.optimizer.apply_gradients(zip(grads_prime, self.net.trainable_weights))
         return loss_value
 
     def train(self) -> None:
@@ -113,9 +133,6 @@ class PrivateClient(fl.client.NumPyClient):
 def main(
     trainset: tf.data.Dataset,
     testset: tf.data.Dataset,
-    model: keras.Model,
-    optimizer: keras.optimizers.Optimizer,
-    loss_function: keras.losses.Loss,
     epsilon: float = 10,
     delta: float = 1 / 2e5,
     l2_norm_clip: float = 1.5,
@@ -129,9 +146,6 @@ def main(
     Args:
         trainset (tf.data.Dataset): tf dataset for training
         testset (tf.data.Dataset): tf dataset for testing
-        model (keras.Model): model
-        optimizer (keras.optimizers.Optimizer): optmizer
-        loss_function (keras.losses.Loss): loss function
         epsilon (float, optional): privacy budget. Defaults to 10.
         delta (float, optional): Bounds the probability of the privacy guarantee
             not holding. A rule of thumb is to set it to be less than the
@@ -142,10 +156,39 @@ def main(
         epochs (int, optional): Number of train epochs. Defaults to 1.
     """
 
-    optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-    loss_function = keras.losses.SparseCategoricalCrossentropy()
-    model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
-    model.compile(optimizer, loss_function, metrics=["accuracy"])
+    # Start Flower client
+    client = PrivateClient(
+        trainset,
+        testset,
+        epochs=epochs,
+        l2_norm_clip=l2_norm_clip,
+        epsilon=epsilon,
+        num_rounds=num_rounds,
+        delta=delta,
+        min_dataset_size=min_dataset_size,
+    )
+    fl.client.start_numpy_client(host, client=client)
+
+
+if __name__ == "__main__":
+    # privacy guarantees for (epsilon, delta)-DP
+    epsilon = 0.8  # lower is better
+    delta = 1 / 2e5
+    l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
+
+    # client variables
+    epochs = 1  # how many epochs to go through
+    batch_size = 256  # batch size for training
+    learning_rate = 0.001  # how quickly the model learns
+    min_dataset_size = 1e5  # minimum training set size
+
+    # server variables
+    num_rounds = 3  # number of train/val rounds to go through
+    min_available_clients = 3  # minimum number of clients to train/val - `N``
+    clients_per_round = 3  # number of clients to be selected for each round - `K`
+    # K <= N
+    host = "[::]:8080"
+
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
     trainset = (
         tf.data.Dataset.from_tensor_slices((x_train, y_train))
@@ -158,22 +201,14 @@ def main(
         .batch(256)
     )
 
-    # Start Flower client
-    client = PrivateClient(
+    main(
         trainset,
         testset,
-        model,
-        optimizer,
-        loss_function,
-        epochs=epochs,
-        l2_norm_clip=l2_norm_clip,
-        epsilon=epsilon,
-        num_rounds=num_rounds,
-        delta=delta,
-        min_dataset_size=min_dataset_size,
+        epsilon,
+        delta,
+        l2_norm_clip,
+        num_rounds,
+        min_dataset_size,
+        epochs,
+        host,
     )
-    fl.client.start_numpy_client(host, client=client)
-
-
-if __name__ == "__main__":
-    main(None, None, None, None, None)

@@ -1,7 +1,7 @@
 import logging
 import math
 from typing import Generator, List, Optional, Tuple
-
+import tensorflow as tf
 import flwr as fl
 import numpy as np
 from flwr.common.typing import Parameters, Scalar, Weights
@@ -111,6 +111,32 @@ def calculate_sigma_u(
     c = calculate_c(delta)
 
     return (2 * C * c * L) / (epsilon * m)
+
+
+def clip_gradients(gradients: list, clip_threshold: float) -> list:
+    """Clip the gradients
+
+    Args:
+        parameter (list): list of gradients
+        clip_threshold (float): C value
+    Returns:
+        list: clipped list of grads
+    """
+    # using formula for page 4, algorithm 1, line 7 in https://arxiv.org/pdf/1911.00222.pdf
+    return [tf.clip_by_norm(g, clip_threshold) for g in gradients]
+
+
+def noise_gradients(gradients: list, std: float) -> list:
+    """noise the gradients
+
+    Args:
+        parameter (list): list of gradients
+        std (float): std of the gaussian noise
+
+    Returns:
+        list: clipped list of grads
+    """
+    return [tf.random.normal(g.shape, stddev=std) for g in gradients]
 
 
 def noise_weights(weights: Weights, sigma: float) -> Weights:

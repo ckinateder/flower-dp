@@ -146,8 +146,8 @@ def main(
     num_rounds: int = 3,
     min_dataset_size: int = 1e5,
     epochs: int = 1,
-    device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     host: str = "[::]:8080",
+    device: str = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
 ) -> None:
     """Create the client
     Args:
