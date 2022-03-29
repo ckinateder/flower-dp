@@ -139,6 +139,24 @@ def noise_gradients(gradients: list, std: float) -> list:
     return [tf.random.normal(g.shape, stddev=std) for g in gradients]
 
 
+def noise_and_clip_gradients(
+    gradients: list, l2_norm_clip: float, sigma: float
+) -> list:
+    """Noise and clip model GRADIENTS
+
+    Args:
+        gradients (list): gradients
+        l2_norm_clip (float): clip threshold or C value
+        sigma (float): std of normal dist
+
+    Returns:
+        list: noised and clipped list of grads
+    """
+    clipped_grads = clip_gradients(gradients, l2_norm_clip)
+    noised_grads = noise_gradients(clipped_grads, sigma)
+    return noised_grads
+
+
 def noise_weights(weights: Weights, sigma: float) -> Weights:
     """Noise flower weights. Weights will be noised with individual drawings
     from the normal - i.e. if weights are an array with shape (1, 5), there

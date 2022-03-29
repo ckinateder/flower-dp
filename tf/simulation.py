@@ -53,6 +53,11 @@ if __name__ == "__main__":
     # load data
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
+    net = tf.keras.applications.MobileNetV2(
+        (32, 32, 3),
+        classes=10,
+        weights=None,
+    )
     # create server process
     server_process = Process(
         target=server.main,
@@ -78,6 +83,8 @@ if __name__ == "__main__":
                 args=(
                     (x_train, y_train),
                     (x_test, y_test),
+                    net,
+                    keras.losses.SparseCategoricalCrossentropy(),
                     epsilon,
                     delta,
                     l2_norm_clip,

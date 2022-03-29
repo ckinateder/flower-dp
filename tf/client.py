@@ -14,6 +14,8 @@ class PrivateClient(fl.client.NumPyClient):
         self,
         trainset: tf.data.Dataset,
         testset: tf.data.Dataset,
+        net: tf.keras.Model,
+        loss_function: tf.keras.losses.Loss,
         epsilon: float = 10,
         delta: float = 1 / 2e5,
         l2_norm_clip: float = 1.5,
@@ -29,9 +31,8 @@ class PrivateClient(fl.client.NumPyClient):
         Args:
             trainset (tf.data.Dataset): tf dataset for training
             testset (tf.data.Dataset): tf dataset for testing
-            model (keras.Model): model
-            optimizer (keras.optimizers.Optimizer): optmizer
-            loss_function (keras.losses.Loss): loss function
+            net (tf.keras.Model): model
+            loss_function (tf.keras.losses.Loss): loss function
             epsilon (float, optional): privacy budget. Defaults to 10.
             delta (float, optional): Bounds the probability of the privacy guarantee
                 not holding. A rule of thumb is to set it to be less than the
@@ -72,21 +73,13 @@ class PrivateClient(fl.client.NumPyClient):
             num_exposures=num_rounds,
             min_dataset_size=min_dataset_size,
         )
+
         ###
         self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-        self.loss_function = keras.losses.SparseCategoricalCrossentropy()
-        self.net = tf.keras.applications.MobileNetV2(
-            trainset.element_spec[0].shape[1:],
-            classes=10,
-            weights=None,
-        )
+        self.loss_function = loss_function
+        self.net = net
         self.net.compile(self.optimizer, self.loss_function, metrics=["accuracy"])
         ###
-
-    def clip_and_noise_gradients(self, gradients: list) -> list:
-        clipped_grads = privacy.clip_gradients(gradients, self.l2_norm_clip)
-        noised_grads = privacy.noise_gradients(clipped_grads, self.sigma_u)
-        return noised_grads
 
     @tf.function
     def train_step(self, x, y):
@@ -94,7 +87,11 @@ class PrivateClient(fl.client.NumPyClient):
             logits = self.net(x, training=True)
             loss_value = self.loss_function(y, logits)
         grads = tape.gradient(loss_value, self.net.trainable_weights)
-        grads_prime = self.clip_and_noise_gradients(grads)
+        grads_prime = privacy.noise_and_clip_gradients(
+            grads,
+            l2_norm_clip=self.l2_norm_clip,
+            sigma=self.sigma_u,
+        )
         self.optimizer.apply_gradients(zip(grads_prime, self.net.trainable_weights))
         return loss_value
 
@@ -133,6 +130,8 @@ class PrivateClient(fl.client.NumPyClient):
 def main(
     trainset: tf.data.Dataset,
     testset: tf.data.Dataset,
+    net: tf.keras.Model,
+    loss_function: tf.keras.losses.Loss,
     epsilon: float = 10,
     delta: float = 1 / 2e5,
     l2_norm_clip: float = 1.5,
@@ -146,6 +145,8 @@ def main(
     Args:
         trainset (tf.data.Dataset): tf dataset for training
         testset (tf.data.Dataset): tf dataset for testing
+        net (tf.keras.Model): model
+        loss_function (tf.keras.losses.Loss): loss function
         epsilon (float, optional): privacy budget. Defaults to 10.
         delta (float, optional): Bounds the probability of the privacy guarantee
             not holding. A rule of thumb is to set it to be less than the
@@ -160,6 +161,8 @@ def main(
     client = PrivateClient(
         trainset,
         testset,
+        net,
+        loss_function,
         epochs=epochs,
         l2_norm_clip=l2_norm_clip,
         epsilon=epsilon,
