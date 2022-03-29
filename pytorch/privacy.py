@@ -151,7 +151,7 @@ def noise_parameter(parameter: torch.Tensor, std: float) -> None:
     parameter.add_(noise_vector)
 
 
-def noise_and_clip_parameters(
+def noise_and_clip_gradients(
     parameters: Generator, l2_norm_clip: float, sigma: float
 ) -> None:
     """Noise and clip model param GRADIENTS in place

@@ -184,7 +184,7 @@ The constructor is pretty self explanatory. It consists of variable assignment, 
         )
 ```
 
-The training function is standard for most pytorch implementations. However, one important difference is the addition of the `privacy.noise_and_clip_parameters` function. This is defined in [pytorch/privacy.py](pytorch/privacy.py) and handles clipping and noising the model's weights.
+The training function is standard for most pytorch implementations. However, one important difference is the addition of the `privacy.noise_and_clip_gradients` function. This is defined in [pytorch/privacy.py](pytorch/privacy.py) and handles clipping and noising the model's weights.
 
 ```python
     def train(self) -> None:
@@ -206,7 +206,7 @@ The training function is standard for most pytorch implementations. However, one
                 optimizer.step()
 
                 # apply noise
-                privacy.noise_and_clip_parameters(
+                privacy.noise_and_clip_gradients(
                     self.net.parameters(),
                     l2_norm_clip=self.l2_norm_clip,
                     sigma=self.sigma_u,
@@ -296,7 +296,7 @@ The [privacy](pytorch/privacy.py) class contains the most important privacy calc
 
 #### Actions
 
-- `noise_and_clip_parameters(parameters: Generator, l2_norm_clip: float, sigma: float) -> None`
+- `noise_and_clip_gradients(parameters: Generator, l2_norm_clip: float, sigma: float) -> None`
 - `noise_aggregated_weights(aggregated_weights: Optional[fl.common.Parameters], sigma: float) -> Optional[fl.common.Parameters]`
 
 ## Links

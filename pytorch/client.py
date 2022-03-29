@@ -78,17 +78,18 @@ class PrivateClient(fl.client.NumPyClient):
         images, labels = x.to(self.device), y.to(self.device)
         loss = self.loss_function(self.net(images), labels)
 
-        # compute and apply gradients
+        # compute grads
         self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
 
         # apply noise
-        privacy.noise_and_clip_parameters(
+        privacy.noise_and_clip_gradients(
             self.net.parameters(),
             l2_norm_clip=self.l2_norm_clip,
             sigma=self.sigma_u,
         )
+        # apply gradients
+        self.optimizer.step()
 
     def train(self) -> None:
         """Train self.net on the training set."""
