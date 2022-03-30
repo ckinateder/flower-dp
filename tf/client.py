@@ -41,6 +41,7 @@ class PrivateClient(fl.client.NumPyClient):
             min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
             num_rounds (int, optional): num rounds - number of aggregation times. Defaults to 3.
             epochs (int, optional): Number of train epochs. Defaults to 1.
+            batch_size (int, optional): Batch size to use. Defaults to 256.
         """
         super().__init__(*args, **kwargs)
 
@@ -139,6 +140,7 @@ def main(
     min_dataset_size: int = 1e5,
     epochs: int = 1,
     host: str = "[::]:8080",
+    batch_size: int = 256,
 ) -> None:
     """Create the client
 
@@ -155,6 +157,7 @@ def main(
         min_dataset_size (int, optional): minimum size of local datasets. Defaults to 1e5.
         num_rounds (int, optional): num rounds - number of aggregation times. Defaults to 3.
         epochs (int, optional): Number of train epochs. Defaults to 1.
+        batch_size (int, optional): Batch size to use. Defaults to 256.
     """
 
     # Start Flower client
