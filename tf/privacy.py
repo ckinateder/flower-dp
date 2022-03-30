@@ -173,11 +173,13 @@ def noise_weights(weights: Weights, sigma: float) -> Weights:
     return weights
 
 
-def server_side_noise(parameters: Parameters, sigma: float) -> Optional[Parameters]:
+def server_side_noise(
+    parameters: Optional[Parameters], sigma: float
+) -> Optional[Parameters]:
     """Apply noise_weights to flower parameters
 
     Args:
-        parameters (Parameters): server params
+        parameters (Optional[Parameters]): server params
         sigma (float): std of normal distribution of noise to be added
 
     Returns:

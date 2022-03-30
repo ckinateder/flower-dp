@@ -69,7 +69,6 @@ if __name__ == "__main__":
     # client variables
     epochs = 1  # how many epochs to go through
     batch_size = 256  # batch size for training
-    learning_rate = 0.001  # how quickly the model learns
     min_dataset_size = 1e5  # minimum training set size
 
     # server variables
@@ -85,7 +84,6 @@ if __name__ == "__main__":
     # create net, optimizer, loss
     net = CIFAR10Net()
     loss = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
     # create server process
     server_process = Process(
@@ -113,7 +111,6 @@ if __name__ == "__main__":
                     trainloader,
                     testloader,
                     net,
-                    optimizer,
                     loss,
                     epsilon,
                     delta,

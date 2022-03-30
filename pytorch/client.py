@@ -18,7 +18,6 @@ class PrivateClient(fl.client.NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         model: nn.Module,
-        optimizer: torch.optim.Optimizer,
         loss_function: nn.Module,
         epsilon: float = 10,
         delta: float = 1 / 2e5,
@@ -35,7 +34,6 @@ class PrivateClient(fl.client.NumPyClient):
             trainloader (DataLoader): pytorch dataloader with trainset
             testloader (DataLoader): pytorch dataloader with testset
             model (nn.Module): pytorch nn. This is an object.
-            optimizer (torch.optim.Optimizer): Optimizer used in training.
             loss_function (nn.Module): Loss function.
             device (str, optional): device to compute on. Defaults to
                 torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
@@ -71,7 +69,7 @@ class PrivateClient(fl.client.NumPyClient):
             min_dataset_size=min_dataset_size,
         )
         self.loss_function = loss_function
-        self.optimizer = optimizer
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=0.001)
 
     def train_step(self, x, y) -> None:
         # send to device and compute loss
@@ -139,7 +137,6 @@ def main(
     trainloader: DataLoader,
     testloader: DataLoader,
     model: nn.Module,
-    optimizer: torch.optim.Optimizer,
     loss_function: nn.Module,
     epsilon: float = 10,
     delta: float = 1 / 2e5,
@@ -155,7 +152,6 @@ def main(
         trainloader (DataLoader): pytorch dataloader with trainset
         testloader (DataLoader): pytorch dataloader with testset
         model (nn.Module): pytorch nn. This is an object.
-        optimizer (torch.optim.Optimizer): Optimizer used in training.
         loss_function (nn.Module): Loss function.
         device (str, optional): device to compute on. Defaults to
             torch.device("cuda:0" if torch.cuda.is_available() else "cpu").
@@ -175,7 +171,6 @@ def main(
         trainloader,
         testloader,
         model,
-        optimizer,
         loss_function,
         device=device,
         epochs=epochs,
