@@ -3,7 +3,6 @@ from multiprocessing import Process
 from pickletools import optimize
 from typing import List, Union
 from tensorflow import keras
-import copy
 import tensorflow as tf
 
 import client
@@ -32,7 +31,7 @@ if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
     net = tf.keras.applications.MobileNetV2(
-        (32, 32, 3),
+        x_train.shape[1:],
         classes=10,
         weights=None,
     )

@@ -12,8 +12,8 @@ class PrivateClient(fl.client.NumPyClient):
 
     def __init__(
         self,
-        trainset: tf.data.Dataset,
-        testset: tf.data.Dataset,
+        trainset: Union[np.ndarray, np.ndarray],
+        testset: Union[np.ndarray, np.ndarray],
         net: tf.keras.Model,
         loss_function: tf.keras.losses.Loss,
         epsilon: float = 10,
@@ -29,8 +29,8 @@ class PrivateClient(fl.client.NumPyClient):
         """Create the client
 
         Args:
-            trainset (tf.data.Dataset): tf dataset for training
-            testset (tf.data.Dataset): tf dataset for testing
+            trainset (Union[np.ndarray, np.ndarray]): (x_train, y_train) numpy arrays
+            testset (Union[np.ndarray, np.ndarray]): (x_test, y_test) numpy arrays
             net (tf.keras.Model): model
             loss_function (tf.keras.losses.Loss): loss function
             epsilon (float, optional): privacy budget. Defaults to 10.
@@ -129,8 +129,8 @@ class PrivateClient(fl.client.NumPyClient):
 
 
 def main(
-    trainset: tf.data.Dataset,
-    testset: tf.data.Dataset,
+    trainset: Union[np.ndarray, np.ndarray],
+    testset: Union[np.ndarray, np.ndarray],
     net: tf.keras.Model,
     loss_function: tf.keras.losses.Loss,
     epsilon: float = 10,
@@ -145,8 +145,8 @@ def main(
     """Create the client
 
     Args:
-        trainset (tf.data.Dataset): tf dataset for training
-        testset (tf.data.Dataset): tf dataset for testing
+        trainset (Union[np.ndarray, np.ndarray]): (x_train, y_train) numpy arrays
+        testset (Union[np.ndarray, np.ndarray]): (x_test, y_test) numpy arrays
         net (tf.keras.Model): model
         loss_function (tf.keras.losses.Loss): loss function
         epsilon (float, optional): privacy budget. Defaults to 10.
@@ -172,49 +172,6 @@ def main(
         num_rounds=num_rounds,
         delta=delta,
         min_dataset_size=min_dataset_size,
+        batch_size=batch_size,
     )
     fl.client.start_numpy_client(host, client=client)
-
-
-if __name__ == "__main__":
-    # privacy guarantees for (epsilon, delta)-DP
-    epsilon = 0.8  # lower is better
-    delta = 1 / 2e5
-    l2_norm_clip = 1.5  # max euclidian norm of the weight gradients
-
-    # client variables
-    epochs = 1  # how many epochs to go through
-    batch_size = 256  # batch size for training
-    learning_rate = 0.001  # how quickly the model learns
-    min_dataset_size = 1e5  # minimum training set size
-
-    # server variables
-    num_rounds = 3  # number of train/val rounds to go through
-    min_available_clients = 3  # minimum number of clients to train/val - `N``
-    clients_per_round = 3  # number of clients to be selected for each round - `K`
-    # K <= N
-    host = "[::]:8080"
-
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-    trainset = (
-        tf.data.Dataset.from_tensor_slices((x_train, y_train))
-        .shuffle(buffer_size=1024)
-        .batch(256)
-    )
-    testset = (
-        tf.data.Dataset.from_tensor_slices((x_test, y_test))
-        .shuffle(buffer_size=1024)
-        .batch(256)
-    )
-
-    main(
-        trainset,
-        testset,
-        epsilon,
-        delta,
-        l2_norm_clip,
-        num_rounds,
-        min_dataset_size,
-        epochs,
-        host,
-    )
