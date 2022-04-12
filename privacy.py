@@ -1,10 +1,10 @@
 import logging
 import math
-from typing import Generator, List, Optional, Tuple
-import tensorflow as tf
+from typing import Optional
+
 import flwr as fl
 import numpy as np
-from flwr.common.typing import Parameters, Scalar, Weights
+from flwr.common.typing import Parameters, Weights
 
 logger = logging.getLogger(__name__)
 
@@ -113,48 +113,51 @@ def calculate_sigma_u(
     return (2 * C * c * L) / (epsilon * m)
 
 
-def clip_gradients(gradients: list, clip_threshold: float) -> list:
-    """Clip the gradients
+def clip_parameter(parameter: np.ndarray, clip_threshold: float) -> np.ndarray:
+    """Clip the parameter in place
 
     Args:
-        parameter (list): list of gradients
+        parameter (np.ndarray): input parameter
         clip_threshold (float): C value
     Returns:
-        list: clipped list of grads
+        np.ndarray: clipped parameter
+
     """
     # using formula for page 4, algorithm 1, line 7 in https://arxiv.org/pdf/1911.00222.pdf
-    return [tf.clip_by_norm(g, clip_threshold) for g in gradients]
+    return parameter / max(1, np.linalg.norm(parameter) / clip_threshold)
 
 
-def noise_gradients(gradients: list, std: float) -> list:
-    """noise the gradients
+def noise_parameter(parameter: np.ndarray, std: float) -> np.ndarray:
+    """Add gaussian noise to the given parameter in place
 
     Args:
-        parameter (list): list of gradients
+        parameter (np.ndarray): input parameter
         std (float): std of the gaussian noise
-
     Returns:
-        list: clipped list of grads
+        np.ndarray: noised parameter
+
     """
-    return [tf.random.normal(g.shape, stddev=std) for g in gradients]
+    return parameter + np.random.normal(scale=std, size=parameter.shape)
 
 
-def noise_and_clip_gradients(
-    gradients: list, l2_norm_clip: float, sigma: float
-) -> list:
-    """Noise and clip model GRADIENTS
+def noise_and_clip_param(
+    parameter: np.ndarray, l2_norm_clip: float, sigma: float
+) -> np.ndarray:
+    """Noise and clip an ndarray
 
     Args:
-        gradients (list): gradients
+        parameter (np.ndarray): parameter
         l2_norm_clip (float): clip threshold or C value
         sigma (float): std of normal dist
 
     Returns:
-        list: noised and clipped list of grads
+        np.ndarray: noised and clipped parammeter
     """
-    clipped_grads = clip_gradients(gradients, l2_norm_clip)
-    noised_grads = noise_gradients(clipped_grads, sigma)
-    return noised_grads
+    return np.array(
+        noise_parameter(
+            clip_parameter(parameter, clip_threshold=l2_norm_clip), std=sigma
+        )
+    )
 
 
 def noise_weights(weights: Weights, sigma: float) -> Weights:
@@ -173,13 +176,11 @@ def noise_weights(weights: Weights, sigma: float) -> Weights:
     return weights
 
 
-def server_side_noise(
-    parameters: Optional[Parameters], sigma: float
-) -> Optional[Parameters]:
+def server_side_noise(parameters: Parameters, sigma: float) -> Optional[Parameters]:
     """Apply noise_weights to flower parameters
 
     Args:
-        parameters (Optional[Parameters]): server params
+        parameters (Parameters): server params
         sigma (float): std of normal distribution of noise to be added
 
     Returns:

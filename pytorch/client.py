@@ -1,13 +1,16 @@
+import os, sys
+
+sys.path.insert(0, os.getcwd())
+
 from collections import OrderedDict
 from typing import Generator, Union
 
 import flwr as fl
+import privacy
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-import privacy
 
 
 class PrivateClient(fl.client.NumPyClient):
@@ -81,11 +84,18 @@ class PrivateClient(fl.client.NumPyClient):
         loss.backward()
 
         # apply noise
-        privacy.noise_and_clip_gradients(
-            self.net.parameters(),
-            l2_norm_clip=self.l2_norm_clip,
-            sigma=self.sigma_u,
-        )
+        with torch.no_grad():
+            for param in self.net.parameters():
+                param.grad.copy_(
+                    torch.Tensor(
+                        privacy.noise_and_clip_param(
+                            param.grad,
+                            l2_norm_clip=self.l2_norm_clip,
+                            sigma=self.sigma_u,
+                        )
+                    )
+                )
+
         # apply gradients
         self.optimizer.step()
 

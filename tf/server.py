@@ -1,3 +1,6 @@
+import os, sys
+
+sys.path.insert(0, os.getcwd())
 from typing import Dict, List, Optional, Tuple
 
 import flwr as fl

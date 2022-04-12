@@ -1,4 +1,7 @@
-import os
+import sys, os
+
+sys.path.insert(0, os.getcwd())
+
 from multiprocessing import Process
 from pickletools import optimize
 from typing import List, Union

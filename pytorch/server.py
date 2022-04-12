@@ -1,9 +1,11 @@
+import os, sys
+
+sys.path.insert(0, os.getcwd())
 from typing import Dict, List, Optional, Tuple
 
 import flwr as fl
-from flwr.common.typing import Parameters, Scalar, Weights
-
 import privacy
+from flwr.common.typing import Parameters, Scalar, Weights
 
 
 class PrivateServer(fl.server.strategy.FedAvg):

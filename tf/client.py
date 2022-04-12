@@ -1,9 +1,13 @@
+import os, sys
+
+sys.path.insert(0, os.getcwd())
+from typing import Union
+
 import flwr as fl
 import numpy as np
+import privacy
 import tensorflow as tf
 from tensorflow import keras
-import privacy
-from typing import Union
 from tqdm import tqdm
 
 
@@ -88,11 +92,13 @@ class PrivateClient(fl.client.NumPyClient):
             logits = self.net(x, training=True)
             loss_value = self.loss_function(y, logits)
         grads = tape.gradient(loss_value, self.net.trainable_weights)
-        grads_prime = privacy.noise_and_clip_gradients(
-            grads,
-            l2_norm_clip=self.l2_norm_clip,
-            sigma=self.sigma_u,
-        )
+
+        # apply noise
+        grads_prime = [
+            tf.clip_by_norm(g, self.l2_norm_clip)
+            for g in [g + tf.random.normal(g.shape, stddev=self.sigma_u) for g in grads]
+        ]
+
         self.optimizer.apply_gradients(zip(grads_prime, self.net.trainable_weights))
         return loss_value
 
