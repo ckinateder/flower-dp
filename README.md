@@ -33,6 +33,8 @@ In our scenario, the "datasets" would be the weights of the model. So, we add a 
 
 ## Getting Started
 
+**Note that this has been tested on UNIX systems.**
+
 To install clone the repo and `cd` into the directory.
 
 ```bash
@@ -69,7 +71,6 @@ See the readme in `tf/` and `pytorch/` for details specific to each framework.
 
 - [flower.dev](https://flower.dev/)
 - [pytorch](https://pytorch.org/)
-- [tensorfow_privacy](https://www.tensorflow.org/responsible_ai/privacy/guide)
 
 ### Material for Future Reference
 
