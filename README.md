@@ -4,8 +4,15 @@
 
 A custom *(ε, δ)*-DP implementation into the [flower.dev](https://flower.dev/) federated learning framework. `flower-dp` utilizes both the noising before model aggregation FL (NbAFL) method, as well as noising during model aggregation.[^dpfl] All the noising is implemented and shown within the code, rather than relying on an outside source. This decision was made considering the values of transparency, practical functionality, and abilty to adapt to other machine learning frameworks. While researching other frameworks, I found that most all of them were based around passing a "noise multipler" as a parameter and calculating *ε* (the privacy budget) using that multiplier and other parameters. One of the features that I wanted to center for this custom implementation was the ability to pass *ε* as a parameter. I think that being able to ensure *ε* up front rather than an arbitrary "noise multiplier" is very important. From a practical standpoint, it makes much more sense to be able to **preemptively ensure a metric of privacy with real meaning.**
 
-`flower-dp` is currently just designed for pytorch, but will be expanded to include tensorflow as well.  
 Project based on the paper [Federated Learning with Differential Privacy: Algorithms and Performance Analysis](https://doi.org/10.48550/arXiv.1911.00222).
+
+## Documentation Overview and Walkthrough
+
+<a href="https://youtu.be/bBNv_co33sM" title="Flower-dp Overview">
+  <p align="center">
+    <img width="75%" src="https://img.youtube.com/vi/bBNv_co33sM/maxresdefault.jpg" alt="flower-dp Thumbnail"/>
+  </p>
+</a>
 
 ## A Quick Overview of Differential Privacy for Federated Learning
 
